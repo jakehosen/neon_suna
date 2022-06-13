@@ -12,8 +12,7 @@
   - Make sure you have Python installed. If you have not installed Python, you should do so. If you have a Mac, it should be pre-installed, but there are packages and dependencies that may need to be installed. If you are using Windows, [you can install Anaconda](https://towardsdatascience.com/ideal-python-environment-setup-for-data-science-cdb03a447de8), which will install many of the dependencies you need. In my experience, Anaconda is great on Windows, but it tends to put files in weird places on a Mac.
   - To install JupyterLab go [here](https://jupyterlab.readthedocs.io/en/stable/getting_started/installation.html). I would recommend using pip to install using the instructions in the link. You may need to install pip. You could also try using the conda method, but as I mentioned I don't love how the conda installer organizes things.
   - Now to link Jupyter and R, run the following lines in R:
-    '''
-    install.packages("devtools")
+    '''install.packages("devtools")
     devtools::install_github("IRkernel/IRkernel")
     IRkernel::installspec()
     '''
