@@ -1,0 +1,60 @@
+library(shiny)
+library(shinydashboard)
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+library(lubridate)
+library(plotly)
+
+neon <- read_csv("neon_absorbance_grab_samples.csv")
+site_list_unique <- unlist(unique(neon$site))
+
+
+ui <- dashboardPage(
+  header <- dashboardHeader(title = "My Dashboard"),
+  sidebar <- dashboardSidebar(
+    sidebarMenu(
+      menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
+      menuItem("Widgets", icon = icon("th"), tabName = "widgets",
+               badgeLabel = "new", badgeColor = "green")
+    )
+  ),
+  # body <-dashboardBody(
+  #   tabItems(
+  #     # First tab content
+  #     tabItem(tabName = "dashboard",
+  #             selectInput("select", label = h3("Select site"), 
+  #                         choices = site_list_unique, 
+  #                         selected = 1),
+  #             plotlyOutput("plot")
+  #     
+  #   ))),
+body <-dashboardBody(
+    titlePanel("UVA 250 by site"),
+    # Copy the line below to make a select box
+    selectInput("select", label = h3("Select site"),
+                choices = site_list_unique,
+                selected = 1),
+    mainPanel(
+      plotlyOutput("plot")
+    )
+  )
+)
+
+dashboardPage(header, sidebar, body)
+
+server <- function(input, output) {
+  neon_subset <- reactive({
+    neon %>% filter(site==input$select)%>%
+      mutate(date=ymd_hm(collectDate))
+  })
+  
+  output$plot <- renderPlotly({
+    ggplot(data = neon_subset()) + 
+      # theme(axis.text.x = element_text(angle = 90)) +
+      geom_point(aes(x = date, y = uva_250))
+  })
+  
+}
+
+shinyApp(ui, server)
