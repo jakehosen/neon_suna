@@ -76,6 +76,7 @@ ui <- dashboardPage(
       menuItem("Tab2", tabName = "Tab2", icon = icon("globe")),
       menuItem("Tab3", tabName = "Tab3", icon = icon("search")),
       menuItem("Tab4", tabName = "Tab4", icon = icon("chart-bar")),
+      menuItem("Map", tabName = "Map", icon = icon("map")),
       menuItem("Glossary", tabName = "Glossary", icon = icon("book")))
     ), #End dashboard sidebar
 
@@ -137,7 +138,10 @@ dashboardBody(
                         choices = uv_type, 
                         # choices = c( "uva_250.mean", "uva_280.mean"), 
                         selected = 1),
+            checkboxInput("checkbox250", label = "UVA 250", value = TRUE),
+            checkboxInput("checkbox280", label = "UVA 280", value = FALSE)
             ), #closes sidebarPanel
+            
             
             mainPanel(
               plotlyOutput("plot3")
@@ -153,7 +157,7 @@ dashboardBody(
             br(),
             
             sidebarPanel(
-            dateInput(inputId='date',label = 'Enter date: yyyy-mm-dd ', value = "2019-07-27"),
+            dateInput(inputId='date4',label = 'Enter date: yyyy-mm-dd ', value = "2019-07-27"),
             timeInput("time", "Enter time", value = strptime(" 10:00:46", "%T")),
                         ), #closes sideBar panel 
           
@@ -163,13 +167,22 @@ dashboardBody(
               fluidRow(column(3, verbatimTextOutput("value"))),
             )
             
-    ),  #closes tabItem 4      
+    ),  #closes tabItem 4    
     
-    #### Glossary UI #####
-    tabItem(tabName = "Tab5",
+    #### Map UI #####
+    tabItem(tabName = "Map",
             
             #Header     
-            h1("Let's do Tab 5,",br(),"Aquatic Database!", align = 'center'),
+            h1("Map",br(),"NEON Aquatic Sites", align = 'center'),
+            br(),
+            
+    ),  #closes Map     
+    
+    #### Glossary UI #####
+    tabItem(tabName = "Glossary",
+            
+            #Header     
+            h1("Glossary",br(),"DOM", align = 'center'),
             br(),
             
     )  #closes Glossary
@@ -212,19 +225,46 @@ server <- function (input, output){
       mutate(date=ymd_hm(collectDate))
   })
   
+  # output$plot3 <- renderPlotly({
+  #   ggplot(neon +
+  #   geom_point(aes(x = collectDate, y = uva_250)))
+  # })
+  
+  
+  # output$plot3 <- renderPlotly({
+  #   geom_point(aes(x = collectDate, y = uva_250, color = site))
+  # })
   
   output$plot3 <- renderPlotly({
-    yaxis <- input$uv
-    ggplot(neon_subset(), aes(x = date)) +
-      
-      geom_point(aes(y=as.character(yaxis))) #straight horizontal line
+    
+    #plot
+    q <- ggplot(data = neon_subset())
+
+    if (input$checkbox250 == TRUE){
+        q <- q + geom_point(aes(x = date, y = uva_250, color = "red"))
+    }
+    
+    if (input$checkbox280 == TRUE){
+        q <- q + geom_point(aes(x = date, y = uva_280)) #WALk to must be a finite number
+    }
+    
+    q
+  })
+  
+  # output$plot3 <- renderPlotly({
+  #   yaxis <- input$uv
+  #   ggplot(neon_subset()) +
+  #     geom_point(aes(x = date, y = uva_250))
+    
+  #     
+      # geom_point(aes(y=as.character(yaxis))) #straight horizontal line
       # geom_point(aes_string(y=as.character(yaxis))) #object 'uva_250.mean' not found
     
       # geom_point(aes(y=as.numeric(yaxis))) #no dots show up
       # geom_point(aes_string(y=as.numeric(yaxis))) #no dots show up, y vs date
       
       # geom_point(aes_string(y=input$uv))
-  })
+  # })
     
     # ggplot(data = neon_subset(), aes(x=date)) + 
     # geom_point(aes_string(y = input$uv_type)) #need to use aes and aes_string together
@@ -239,7 +279,7 @@ server <- function (input, output){
   
   output$plot4 <- renderPlotly({
     
-    date_mdy <- input$date
+    date_mdy <- input$date4
     time_hms <- input$time
     cram_melt_onestamp<-subset(cram_melt,dtp==as.POSIXct(paste(date_mdy,"10:00:46", sep=" "),tz="UTC"))
     ggplot(cram_melt_onestamp,aes(wavelength,value))+
@@ -247,6 +287,10 @@ server <- function (input, output){
       geom_line(size=2)
   })
   
+  #### Map Server ####
+  
+
+
       
 }# closes server
   
