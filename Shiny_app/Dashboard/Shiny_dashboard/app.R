@@ -134,10 +134,10 @@ dashboardBody(
             selectInput("select", label = h3("Select site"), 
                         choices = site_list_unique, 
                         selected = 1),
-            selectInput("uv", label = h3("Select uv freq"),
-                        choices = uv_type, 
-                        # choices = c( "uva_250.mean", "uva_280.mean"), 
-                        selected = 1),
+            # selectInput("uv", label = h3("Select uv freq"),
+            #             choices = uv_type, 
+            #             # choices = c( "uva_250.mean", "uva_280.mean"), 
+            #             selected = 1),
             checkboxInput("checkbox250", label = "UVA 250", value = TRUE),
             checkboxInput("checkbox280", label = "UVA 280", value = FALSE)
             ), #closes sidebarPanel
