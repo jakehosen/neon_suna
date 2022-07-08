@@ -49,6 +49,21 @@ cram_melt<-melt(cram_2019_keep,id="dtp")
 cram_melt$wavelength<-as.numeric(gsub("interp_","",cram_melt$variable,fixed=TRUE))
 cram_melt<-subset(cram_melt,wavelength>=200)
 
+
+#### Stats Function ####
+ggplotRegression <- function (fit) {
+  
+  require(ggplot2)
+  
+  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
+    geom_point() +
+    stat_smooth(method = "lm", col = "red") +
+    labs(title = paste("Adj R2 = ",signif(summary(fit)$adj.r.squared, 5),
+                       "Intercept =",signif(fit$coef[[1]],5 ),
+                       " Slope =",signif(fit$coef[[2]], 5),
+                       " P =",signif(summary(fit)$coef[2,4], 5)))
+}
+
  #### UI ####
 
 ui <- dashboardPage(
@@ -87,13 +102,18 @@ dashboardBody(
             #Header     
             h1("Let's do Tab 2,",br(),"General Trends", align = 'center'),
             br(),
-            selectInput("xvar", label = h3("Select variable"),
+            sidebarPanel(
+            selectInput("xvar", label = h3("Select x variable"),
                         choices = numeric_variables,
                         selected = 1),
             selectInput("yvar", label = h3("Select uv freq"),
                         choices = uv_type,
                         # choices = colnames(uv_variables),
                         selected = 1),
+            checkboxInput("checkboxline", label = "Plot Linear Regression", value = FALSE),
+            checkboxInput("checkboxlog", label = "Log 10", value = FALSE),
+            ), #closes sideBar Panel
+            
             mainPanel(
               plotlyOutput("plot2")
             ) #closes main Panel
@@ -109,7 +129,7 @@ dashboardBody(
             #Header     
             h1("Let's do Tab 3,",br(),"Individual Sites", align = 'center'),
             br(),
-
+            sidebarPanel(
             selectInput("select", label = h3("Select site"), 
                         choices = site_list_unique, 
                         selected = 1),
@@ -117,6 +137,8 @@ dashboardBody(
                         choices = uv_type, 
                         # choices = c( "uva_250.mean", "uva_280.mean"), 
                         selected = 1),
+            ), #closes sidebarPanel
+            
             mainPanel(
               plotlyOutput("plot3")
             )
@@ -130,13 +152,15 @@ dashboardBody(
             h1("Let's do Tab 4,",br(),"Cran stuff", align = 'center'),
             br(),
             
-   
-            dateInput(inputId='dateRange1',label = 'Enter initial date: yyyy-mm-dd ', value = Sys.Date()),
-            timeInput("time_input1", "Enter time of the initial day", value =  strptime("00:00:00", "%T")),
-              
+            sidebarPanel(
+            dateInput(inputId='date',label = 'Enter date: yyyy-mm-dd ', value = "2019-07-27"),
+            timeInput("time", "Enter time", value = strptime(" 10:00:46", "%T")),
+                        ), #closes sideBar panel 
           
             mainPanel(
-              plotlyOutput("plot4")
+              plotlyOutput("plot4"),
+              hr(),
+              fluidRow(column(3, verbatimTextOutput("value"))),
             )
             
     ),  #closes tabItem 4      
@@ -163,29 +187,62 @@ server <- function (input, output){
   
   #### Tab2 Server ####
 
+
   output$plot2 <- renderPlotly({
-    ggplot(data = neon_sample_meta_avg) +
-      geom_point(aes_string(x=input$xvar, y=input$yvar))
+    
+    #plot
+      p <- ggplot(data = neon_sample_meta_avg, aes_string(x=input$xvar, y=input$yvar)) +
+        geom_point()
+    
+    
+    if (input$checkboxline == TRUE){
+      p<-p+ geom_smooth(method = "lm", col = "red")
+    }
+
+    if (input$checkboxlog){
+      p<-p+ scale_x_log10()+scale_y_log10()  #trouble with longitude
+    }
+    
+    p
   })
+
   #### Tab3 Server ####
   neon_subset <- reactive({
     neon %>% filter(site==input$select)%>%
       mutate(date=ymd_hm(collectDate))
   })
   
+  
   output$plot3 <- renderPlotly({
-    ggplot(data = neon_subset()) + 
-      geom_point(aes(x= date, y = input$uv)) #need to use aes and aes_string together
+    yaxis <- input$uv
+    ggplot(neon_subset(), aes(x = date)) +
+      
+      geom_point(aes(y=as.character(yaxis))) #straight horizontal line
+      # geom_point(aes_string(y=as.character(yaxis))) #object 'uva_250.mean' not found
+    
+      # geom_point(aes(y=as.numeric(yaxis))) #no dots show up
+      # geom_point(aes_string(y=as.numeric(yaxis))) #no dots show up, y vs date
+      
+      # geom_point(aes_string(y=input$uv))
+  })
+    
     # ggplot(data = neon_subset(), aes(x=date)) + 
     # geom_point(aes_string(y = input$uv_type)) #need to use aes and aes_string together
-  }) #closes output$plot
+  # }) #closes output$plot
   
   #### Tab 4 Server ####
-  
-  cram_melt_onestamp_2<-subset(cram_melt,dtp==as.POSIXct("2019-07-27 10:00:46",tz="UTC")|dtp==as.POSIXct("2019-07-24 19:50:54",tz="UTC"))
+ 
+  # output$value <- renderPrint({ input$date })
+  # output$time <- renderPrint(strftime(input$time, "%R"))
+  # 
+  # cram_melt_onestamp_2<-subset(cram_melt,dtp==as.POSIXct("2019-07-27 10:00:46",tz="UTC"))
   
   output$plot4 <- renderPlotly({
-    ggplot(cram_melt_onestamp_2,aes(wavelength,value))+
+    
+    date_mdy <- input$date
+    time_hms <- input$time
+    cram_melt_onestamp<-subset(cram_melt,dtp==as.POSIXct(paste(date_mdy,"10:00:46", sep=" "),tz="UTC"))
+    ggplot(cram_melt_onestamp,aes(wavelength,value))+
       geom_point(size=2)+
       geom_line(size=2)
   })
