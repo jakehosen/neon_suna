@@ -7,7 +7,9 @@ library(reshape2)
 library(shiny)
 library(shinydashboard)
 library(shinyTime)
+library(shinyWidgets)
 library(tidyverse)
+
 
 
  
@@ -77,6 +79,7 @@ ui <- dashboardPage(
       menuItem("Tab3", tabName = "Tab3", icon = icon("search")),
       menuItem("Tab4", tabName = "Tab4", icon = icon("chart-bar")),
       menuItem("Map", tabName = "Map", icon = icon("map")),
+      menuItem("Sites", tabName = "Sites", icon = icon("globe")),
       menuItem("Glossary", tabName = "Glossary", icon = icon("book")))
     ), #End dashboard sidebar
 
@@ -131,20 +134,27 @@ dashboardBody(
             h1("Let's do Tab 3,",br(),"Individual Sites", align = 'center'),
             br(),
             sidebarPanel(
-            selectInput("select", label = h3("Select site"), 
-                        choices = site_list_unique, 
-                        selected = 1),
-            # selectInput("uv", label = h3("Select uv freq"),
-            #             choices = uv_type, 
-            #             # choices = c( "uva_250.mean", "uva_280.mean"), 
+              fluidRow(
+                #Data type selection
+                column(width = 4,
+                       pickerInput(inputId = "multiple_site_select", 
+                                   label = "Select site(s):",
+                                   choices = site_list_unique,
+                                   selected = "ARIK",
+                                   options = list(`actions-box` = TRUE), 
+                                   multiple = TRUE))), 
+            # selectInput("select", label = h3("Select site"), 
+            #             choices = site_list_unique, 
             #             selected = 1),
-            checkboxInput("checkbox250", label = "UVA 250", value = TRUE),
-            checkboxInput("checkbox280", label = "UVA 280", value = FALSE)
+            checkboxInput("checkbox250", label = "254 nm", value = TRUE),
+            checkboxInput("checkbox280", label = "280 nm", value = FALSE),
+            # radioButtons("site_attributes", label = "Display Site Attributes"),
             ), #closes sidebarPanel
             
             
             mainPanel(
-              plotlyOutput("plot3")
+              plotlyOutput("plot3"),
+              tableOutput("table3")
             )
             
     ),  #closes tabItem 3   
@@ -176,7 +186,21 @@ dashboardBody(
             h1("Map",br(),"NEON Aquatic Sites", align = 'center'),
             br(),
             
-    ),  #closes Map     
+    ),  #closes Map  
+    
+    #### Sites UI #####
+    tabItem(tabName = "Sites",
+            
+            #Header     
+            h1("Sites",br(),"NEON Aquatic Sites", align = 'center'),
+            br(),
+            
+            mainPanel(
+              dataTableOutput("Sites_table")
+            )
+
+            
+    ),  #closes Sites UI   
     
     #### Glossary UI #####
     tabItem(tabName = "Glossary",
@@ -220,25 +244,26 @@ server <- function (input, output){
   })
 
   #### Tab3 Server ####
+  
+  #Extract site data
   neon_subset <- reactive({
-    neon %>% filter(site==input$select)%>%
+    neon %>% filter(site==input$multiple_site_select)%>%
       mutate(date=ymd_hm(collectDate))
   })
   
-  # output$plot3 <- renderPlotly({
-  #   ggplot(neon +
-  #   geom_point(aes(x = collectDate, y = uva_250)))
-  # })
+
   
-  
-  # output$plot3 <- renderPlotly({
-  #   geom_point(aes(x = collectDate, y = uva_250, color = site))
-  # })
-  
+  #Plot site data
   output$plot3 <- renderPlotly({
     
     #plot
-    q <- ggplot(data = neon_subset())
+    q <- ggplot(data = neon_subset()) + 
+      theme(
+        axis.title.x = element_text(color="blue", size=14, face="bold"),
+        axis.title.y = element_text(color="#993333", size=14, face="bold")
+      )+
+      xlab('Date')
+      ylab('Ultravolet Absorbance')
 
     if (input$checkbox250 == TRUE){
         q <- q + geom_point(aes(x = date, y = uva_250, color = "red"))
@@ -251,6 +276,18 @@ server <- function (input, output){
     q
   })
   
+  #Extract site attributes
+  place <- reactive({
+    neon_site %>% filter(field_site_id==input$multiple_site_select)
+  })
+  
+  #Table site attributes
+
+  output$table3 <- renderTable({place()
+  })
+
+
+    
   # output$plot3 <- renderPlotly({
   #   yaxis <- input$uv
   #   ggplot(neon_subset()) +
@@ -288,6 +325,11 @@ server <- function (input, output){
   })
   
   #### Map Server ####
+  
+  
+  
+  #### Sites Server ####
+  output$Sites_table <- renderDataTable(neon_site)
   
 
 
