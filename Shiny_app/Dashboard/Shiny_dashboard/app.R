@@ -1,13 +1,18 @@
 library(doBy)
 library(ggplot2)
+library(ggpubr) #to display regression analysis
+library(leaflet) #interactive maps
 library(lubridate)
 library(plotly)
+library(rgdal) #needed for read as OGR
 library(readxl)
 library(reshape2)
+library(sf) #mapping
 library(shiny)
 library(shinydashboard)
 library(shinyTime)
 library(shinyWidgets)
+library(sp) #mapping
 library(tidyverse)
 
 
@@ -50,6 +55,10 @@ cram_melt<-melt(cram_2019_keep,id="dtp")
 
 cram_melt$wavelength<-as.numeric(gsub("interp_","",cram_melt$variable,fixed=TRUE))
 cram_melt<-subset(cram_melt,wavelength>=200)
+
+#### Maps Processing ####
+# options(stringsAsFactors=F)
+# neonDomains<-readOGR(".","NEON_Domains")
 
 
 #### Stats Function ####
@@ -131,7 +140,7 @@ dashboardBody(
     tabItem(tabName = "Tab3",
             
             #Header     
-            h1("Let's do Tab 3,",br(),"Individual Sites", align = 'center'),
+            h1("Let's do Tab 3",br(),"Individual Sites", align = 'center'),
             br(),
             sidebarPanel(
               fluidRow(
@@ -186,6 +195,10 @@ dashboardBody(
             h1("Map",br(),"NEON Aquatic Sites", align = 'center'),
             br(),
             
+            # plot(neonDomains),
+            # points(neonSites$field_latitude~neonSites$field_longitude,
+            #        pch=20)
+            
     ),  #closes Map  
     
     #### Sites UI #####
@@ -233,8 +246,9 @@ server <- function (input, output){
     
     
     if (input$checkboxline == TRUE){
-      p<-p+ geom_smooth(method = "lm", col = "red")
-    }
+      p<-p+ geom_smooth(method = "lm", col = "red")+
+        stat_compare_means(method = "anova")
+      }
 
     if (input$checkboxlog){
       p<-p+ scale_x_log10()+scale_y_log10()  #trouble with longitude
@@ -325,6 +339,13 @@ server <- function (input, output){
   })
   
   #### Map Server ####
+  # output$map <- renderLeaflet({
+  #   # Use leaflet() here, and only include aspects of the map that
+  #   # won't need to change dynamically (at least, not unless the
+  #   # entire map is being torn down and recreated).
+  #   leaflet(quakes) %>% addTiles() %>%
+  #     fitBounds(~min(long), ~min(lat), ~max(long), ~max(lat))
+  # })
   
   
   
