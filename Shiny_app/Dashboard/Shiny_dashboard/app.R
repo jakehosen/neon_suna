@@ -4,6 +4,7 @@ library(ggpubr) #to display regression analysis
 library(leaflet) #interactive maps
 library(lubridate)
 library(plotly)
+# library(plyr)
 library(rgdal) #needed for read as OGR
 library(readxl)
 library(reshape2)
@@ -20,11 +21,39 @@ library(tidyverse)
 # options(stringsAsFactors=F)
 # neonDomains<-readOGR(".","NEON_Domains")
  
+
+
+
  ####Tab 2 Processing ####
-neon <- read_csv("neon_absorbance_grab_samples.csv")
 neon_sample<-read.csv("neon_absorbance_grab_samples.csv")
-neon_site<-read.csv("NEON_Field_Site_Metadata.csv", header=T, na.strings=c("","NA"))
+neon_site<-read.csv("NEON_Field_Site_Metadata.csv", 
+                    header=T, 
+                    na.strings=c("","NA"))
+
+# neon_site <- neon_site %>%
+  # rename(neon_site, field_longitude = Longitude)
+
+# names(neon_site)[3] <- 'Name'
+# names(neon_site)[4] <- 'Type'
+# names(neon_site)[5] <- 'Subtype'
+# names(neon_site)[12] <- 'Latitude'
+# names(neon_site)[13] <- 'Longitude'
+
+# names(neon_site)[21] <- 'Mean_Elevation_(m)'
+# names(neon_site)[24] <- 'Mean_Annual_Temperature_(C)'
+# names(neon_site)[25] <- 'Mean_Annual_Precipitation_(mm)'
+# names(neon_site)[32] <- 'Watershed_Size_(km)'
+
+
+
+
+
+
+# colnames(neon_site)[3] <- “Name”
+
 neon_site$site<-neon_site$field_site_id
+
+
 neon_sample_meta<-merge(neon_sample,neon_site,by="site",all.x=TRUE)
 neon_sample_na<-subset(neon_sample,!is.na(uva_250))
 neon_sample_avg<-summaryBy(uva_250+uva_280~site,neon_sample_na,FUN=c(mean,sd))
@@ -39,12 +68,12 @@ uv_type <- uv_draft[ - c(1, 4, 5)]
 #   select(uva_250.mean, uva_280.mean)
 
 site_variables <- unlist(list(colnames(neon_site)))
-numeric_variables <- site_variables[- c(1,2,3,4,5,6,7,8,9,10,11,14,15,16,17,18,19,20,22,23,26,27,28,29,30,31,33,34,35,36,37,38,39,40,41,42,43,44,45,46)]
+numeric_variables <- site_variables[- c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,22,23,26,27,28,29,30,31,33,34,35,36,37,38,39,40,41,42,43,44,45,46)]
 
 
  ####Tab 3 Individual Sites Processing ####
 
-site_list_unique <- unlist(unique(neon$site))
+site_list_unique <- unlist(unique(neon_sample$site))
 
  #### Tab 4 Processing ####
 cram_2019_short<-read.csv("SUNA_CRAM_2019_full_short.csv")
@@ -59,8 +88,47 @@ cram_melt$wavelength<-as.numeric(gsub("interp_","",cram_melt$variable,fixed=TRUE
 cram_melt<-subset(cram_melt,wavelength>=200)
 
 
+#### Column Rearrangment Function ####
+##arrange df vars by position
+##'vars' must be a named vector, e.g. c("var.name"=1)
+arrange.vars <- function(data, vars){
+  ##stop if not a data.frame (but should work for matrices as well)
+  stopifnot(is.data.frame(data))
+  
+  ##sort out inputs
+  data.nms <- names(data)
+  var.nr <- length(data.nms)
+  var.nms <- names(vars)
+  var.pos <- vars
+  ##sanity checks
+  stopifnot( !any(duplicated(var.nms)), 
+             !any(duplicated(var.pos)) )
+  stopifnot( is.character(var.nms), 
+             is.numeric(var.pos) )
+  stopifnot( all(var.nms %in% data.nms) )
+  stopifnot( all(var.pos > 0), 
+             all(var.pos <= var.nr) )
+  
+  ##prepare output
+  out.vec <- character(var.nr)
+  out.vec[var.pos] <- var.nms
+  out.vec[-var.pos] <- data.nms[ !(data.nms %in% var.nms) ]
+  stopifnot( length(out.vec)==var.nr )
+  
+  ##re-arrange vars by position
+  data <- data[ , out.vec]
+  return(data)
+}
 
 
+#### Sites Processing ####
+
+neon_site <- neon_site %>%
+  mutate(
+    data_availability = if_else(
+      neon_site$field_site_id%in% site_list_unique, "YES", "NO"
+    ))
+neon_site <- arrange.vars(neon_site, c("data_availability"=3))
 
 
 #### Stats Function ####
@@ -89,7 +157,7 @@ ui <- dashboardPage(
       menuItem("Map", tabName = "Map", icon = icon("map")),
       menuItem("Macro Trends", tabName = "Tab2", icon = icon("globe")),
       menuItem("Individual Sites", tabName = "Tab3", icon = icon("search")),
-      menuItem("Days", tabName = "Tab4", icon = icon("chart-bar")),
+      menuItem("Time Frame", tabName = "Tab4", icon = icon("chart-bar")),
       menuItem("Sites", tabName = "Sites", icon = icon("globe")),
       menuItem("Glossary", tabName = "Glossary", icon = icon("book")),
       menuItem("References", tabName = "References", icon = icon("book")))
@@ -116,7 +184,7 @@ dashboardBody(
                   #top right box
                   column(width = 12, 
                          
-                         p(tags$img(src="welcome.png", width = "40%", height = "40%", style = "float:left; display: block; margin-left: auto; margin-right: 30px;")),
+                         p(tags$img(src="thesis.PNG", width = "40%", height = "60%", style = "float:left; display: block; margin-left: auto; margin-right: 30px;")),
                          
                          h3("What is the DOM Explorer?", align = "center"), 
                          
@@ -131,9 +199,16 @@ dashboardBody(
             
             #bottom left box  
             box(status = "primary", width = 12, 
-                h3("How was the DOM Explorer created?", align = "center"),
+                h3("How to use the DOM Explorer?", align = "center"),
                 
-                p("We have examined the controls of DOM composition in two ways: the analysis of existing data from the National Ecological Observatory Network (NEON) and field data collection at two novel sites.")),
+                p("We have examined the controls of DOM composition in two ways:"),
+            
+                p(strong(("Analysis of existing data from the National Ecological Observatory Network (NEON)."))),
+                p("- Macro Trends: Observe trends in data across the United States."),
+                p("- Individual Sites: Choose a site (or sites) and track changes over time."),
+                p("- Time Frame: Choose a site and time frame to observe individual data points."),
+            
+                p(strong(("Field data collection at novel sites.")))),
             
             #bottom right box  
             box(status = "primary", width = 12, 
@@ -165,10 +240,9 @@ dashboardBody(
     #### Map UI #####
     tabItem(tabName = "Map",
             
-            #Header     
-            h1("Map",br(),"NEON Aquatic Sites", align = 'center'),
-            br(),
+            p(tags$img(src="static_map.PNG", width = "100%")),
             
+
             # plot(neonDomains),
             # points(neonSites$field_latitude~neonSites$field_longitude,
             #        pch=20)
@@ -176,7 +250,7 @@ dashboardBody(
     ),  #closes Map  
     
     
-    #### Tab2 UI #####
+    #### Macro Trends UI #####
     tabItem(tabName = "Tab2",
             
             #Header     
@@ -203,7 +277,8 @@ dashboardBody(
             
     ),  #closes tabItem 2
 
-    #### Tab3 UI #####
+    
+    #### Individual Sites UI #####
     tabItem(tabName = "Tab3",
             
             #Header     
@@ -290,8 +365,7 @@ dashboardBody(
     tabItem(tabName = "Sites",
             
             #Header     
-            h1("Sites",br(),"NEON Aquatic Sites", align = 'center'),
-            br(),
+            h1("NEON Sites", align = 'center'),
             
             mainPanel(
               dataTableOutput("Sites_table")
@@ -330,14 +404,19 @@ dashboardBody(
             
             box(status = "primary", width = 12, 
                 strong(p("Welcome", align = "center")),
-                p("Cole, J.J., Prairie, Y.T., Caraco, N.F., McDowell, W.H., Tranvik, L.J., Striegl, R.G., Duarte, C.M., Kortelainen, P., Downing, J.A., Middelburg, J.J., Melack, J., 2007. Plumbing the Global Carbon Cycle: Integrating Inland Waters into the Terrestrial Carbon Budget. Ecosystems 10, 172–185. https://doi.org/10.1007/s10021-006-9013-8"),
+                p(a(href = "https://link.springer.com/article/10.1007/s10021-006-9013-8", 'Cole, J.J., Prairie, Y.T., Caraco, N.F., McDowell, W.H., Tranvik, L.J., Striegl, R.G., Duarte, C.M., Kortelainen, P., Downing, J.A., Middelburg, J.J., Melack, J., 2007. Plumbing the Global Carbon Cycle: Integrating Inland Waters into the Terrestrial Carbon Budget. Ecosystems 10, 172–185. https://doi.org/10.1007/s10021-006-9013-8')),
                 p("Cottrell, B.A., Gonsior, M., Isabelle, L.M., Luo, W., Perraud, V., McIntire, T.M., Pankow, J.F., Schmitt-Kopplin, P., Cooper, W.J., Simpson, A.J., 2013. A regional study of the seasonal variation in the molecular composition of rainwater. Atmos. Environ. 77, 588–597. https://doi.org/10.1016/j.atmosenv.2013.05.027"),
                 p("Fazekas, H.M., Wymore, A.S., McDowell, W.H., 2020. Dissolved Organic Carbon and Nitrate Concentration‐Discharge Behavior Across Scales: Land Use, Excursions, and Misclassification. Water Resour. Res. 56. https://doi.org/10.1029/2019WR027028"),
                 p("Gutiérrez-Girón, A., Díaz-Pinés, E., Rubio, A., Gavilán, R.G., 2015. Both altitude and vegetation affect temperature sensitivity of soil organic matter decomposition in Mediterranean high mountain soils. Geoderma 237–238, 1–8. https://doi.org/10.1016/j.geoderma.2014.08.005"),
                 p("Heffernan, J.B., Soranno, P.A., Angilletta, M.J., Buckley, L.B., Gruner, D.S., Keitt, T.H., Kellner, J.R., Kominoski, J.S., Rocha, A.V., Xiao, J., Harms, T.K., Goring, S.J., Koenig, L.E., McDowell, W.H., Powell, H., Richardson, A.D., Stow, C.A., Vargas, R., Weathers, K.C., 2014. Macrosystems ecology: understanding ecological patterns and processes at continental scales. Front. Ecol. Environ. 12, 5–14. https://doi.org/10.1890/130017"),
                 p("Hosen, J.D., Aho, K.S., Appling, A.P., Creech, E.C., Fair, J.H., Hall, R.O., Kyzivat, E.D., Lowenthal, R.S., Matt, S., Morrison, J., Saiers, J.E., Shanley, J.B., Weber, L.C., Yoon, B., Raymond, P.A., 2019. Enhancement of primary production during drought in a temperate watershed is greater in larger rivers than headwater streams. Limnol. Oceanogr. 64, 1458–1472. https://doi.org/10.1002/lno.11127"),
                 p("Mellec, A., Meesenburg, H., Michalzik, B., 2010. The importance of canopy-derived dissolved and particulate organic matter (DOM and POM) — comparing throughfall solution from broadleaved and coniferous forests. Ann. For. Sci. 67, 411–411. https://doi.org/10.1051/forest/2009130")),
-
+            
+            box(status = "primary", width = 12, 
+                strong(p("Map", align = "center")),
+                p(a(href = "https://www.neonscience.org/sites/default/files/FieldSitesMap-33x18-PosterwIndex.pdf", 'NEON'))),
+            
+            
             box(status = "primary", width = 12, 
                 strong(p("Glossary", align = "center"))),
 
@@ -371,15 +450,27 @@ server <- function (input, output){
   #     fitBounds(~min(long), ~min(lat), ~max(long), ~max(lat))
   # })
   
-  #### Tab2 Server ####
+  #### Macro Trends Server ####
 
 
   output$plot2 <- renderPlotly({
+      #linear model
+      # lmodel<- lm(input$yvar~input$xvar)
     
-    #plot
+      #plot
       p <- ggplot(data = neon_sample_meta_avg, aes_string(x=input$xvar, y=input$yvar)) +
         theme_bw() +
         geom_point(aes(text = paste("site:", site)))
+      
+        # trendline(input$xvar, nput$yvar, model = "line2P", plot = TRUE, linecolor = "red",
+        #           lty = 1, lwd = 1, summary = TRUE, ePos = "topleft", eDigit = 5,
+        #           eSize = 1)
+        
+        # labs(title = paste("Adj R2 = ",signif(summary(lmodel)$adj.r.squared, 5),
+        #                    "Intercept =",signif(lmodel$coef[[1]],5 ),
+        #                    " Slope =",signif(lmodel$coef[[2]], 5),
+        #                    " P =",signif(summary(lmodel)$coef[2,4], 5)))
+      
     
     
     if (input$checkboxline == TRUE){
@@ -394,28 +485,29 @@ server <- function (input, output){
     p
   })
 
-  #### Tab3 Server ####
+  #### Individual Sites ####
   
   #Extract site data
   neon_subset <- reactive({
-    neon %>% filter(site==input$multiple_site_select)%>%
+    neon_sample %>% filter(site==input$multiple_site_select)%>%
       mutate(date=ymd_hm(collectDate))
   })
   
 
   
-  #Plot site data
+  # Plot site data
   output$uva250 <- renderPlotly({
-    
     #plot
-    ggplot(data = neon_subset(), aes(x = date, y = uva_250, color = site)) + 
+    ggplot(data = neon_subset()) +
       theme_bw()+
       xlab('Time') +
       ylab('UV Absorbance at 254 nm')+
-      geom_point()+
-      geom_line()
+      geom_point(aes(x = date, y = uva_250, color = site))+
+      geom_line(aes(x = date, y = uva_250, color = site))
   }) #closes renderPlotly for uv250
   
+  
+
   output$uva280 <- renderPlotly({
     ggplot(data = neon_subset()) + 
       theme_bw()+
@@ -441,10 +533,19 @@ server <- function (input, output){
   }) #closes renderPlotly for uv 280
   
   #Extract site attributes
-  place <- reactive({
-    neon_site %>% filter(field_site_id==input$multiple_site_select) %>% 
-      select(field_site_id, field_site_name, field_site_subtype, field_site_state, field_mean_annual_temperature_C, field_mean_annual_precipitation_mm)
+  
+  # place <- reactive({
+  #   neon_site %>% filter(field_site_id==input$multiple_site_select) %>%
+  #     select(field_site_id, field_site_name, field_site_subtype, field_site_state, field_mean_annual_temperature_C, field_mean_annual_precipitation_mm)
+  # })
+  
+   place <- reactive({
+     mylist <-input$multiple_site_select # creates a list
+    neon_site %>%
+      filter(field_site_id %in% mylist) %>%
+      select(field_site_id, field_site_name,field_site_subtype, field_site_state, field_mean_annual_temperature_C, field_mean_annual_precipitation_mm) # selects sites from list
   })
+  
   
   #Table of site attributes
   output$table3 <- renderTable({place()})
