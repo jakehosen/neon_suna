@@ -3,6 +3,7 @@ library(ggplot2)
 library(ggpubr) #to display regression analysis
 library(leaflet) #interactive maps
 library(lubridate)
+library(nlme)
 library(plotly)
 # library(plyr)
 library(rgdal) #needed for read as OGR
@@ -16,15 +17,59 @@ library(shinyWidgets)
 library(sp) #mapping
 library(tidyverse)
 
+##arrange df vars by position
+##'vars' must be a named vector, e.g. c("var.name"=1)
+arrange.vars <- function(data, vars){
+  ##stop if not a data.frame (but should work for matrices as well)
+  stopifnot(is.data.frame(data))
+  
+  ##sort out inputs
+  data.nms <- names(data)
+  var.nr <- length(data.nms)
+  var.nms <- names(vars)
+  var.pos <- vars
+  ##sanity checks
+  stopifnot( !any(duplicated(var.nms)), 
+             !any(duplicated(var.pos)) )
+  stopifnot( is.character(var.nms), 
+             is.numeric(var.pos) )
+  stopifnot( all(var.nms %in% data.nms) )
+  stopifnot( all(var.pos > 0), 
+             all(var.pos <= var.nr) )
+  
+  ##prepare output
+  out.vec <- character(var.nr)
+  out.vec[var.pos] <- var.nms
+  out.vec[-var.pos] <- data.nms[ !(data.nms %in% var.nms) ]
+  stopifnot( length(out.vec)==var.nr )
+  
+  ##re-arrange vars by position
+  data <- data[ , out.vec]
+  return(data)
+}
 
-#### Map Processing ####
+ggplotRegression <- function (fit) {
+  
+  require(ggplot2)
+  
+  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
+    geom_point() +
+    stat_smooth(method = "lm", col = "red") +
+    labs(title = paste("Adj R2 = ",signif(summary(fit)$adj.r.squared, 5),
+                       "Intercept =",signif(fit$coef[[1]],5 ),
+                       " Slope =",signif(fit$coef[[2]], 5),
+                       " P =",signif(summary(fit)$coef[2,4], 5)))
+}
+
+
+ #### Map Processing ####
 # options(stringsAsFactors=F)
 # neonDomains<-readOGR(".","NEON_Domains")
  
 
 
 
- ####Tab 2 Processing ####
+ #### Macro Trends Processing ####
 neon_sample<-read.csv("neon_absorbance_grab_samples.csv")
 neon_site<-read.csv("NEON_Field_Site_Metadata.csv", 
                     header=T, 
@@ -57,6 +102,8 @@ neon_site$site<-neon_site$field_site_id
 neon_sample_meta<-merge(neon_sample,neon_site,by="site",all.x=TRUE)
 neon_sample_na<-subset(neon_sample,!is.na(uva_250))
 neon_sample_avg<-summaryBy(uva_250+uva_280~site,neon_sample_na,FUN=c(mean,sd))
+
+
 neon_sample_meta_avg<-merge(neon_sample_avg,neon_site,by="site",all.x=TRUE)
 
 
@@ -71,7 +118,7 @@ site_variables <- unlist(list(colnames(neon_site)))
 numeric_variables <- site_variables[- c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,22,23,26,27,28,29,30,31,33,34,35,36,37,38,39,40,41,42,43,44,45,46)]
 
 
- ####Tab 3 Individual Sites Processing ####
+ ####Individual Sites Processing ####
 
 site_list_unique <- unlist(unique(neon_sample$site))
 
@@ -88,37 +135,7 @@ cram_melt$wavelength<-as.numeric(gsub("interp_","",cram_melt$variable,fixed=TRUE
 cram_melt<-subset(cram_melt,wavelength>=200)
 
 
-#### Column Rearrangment Function ####
-##arrange df vars by position
-##'vars' must be a named vector, e.g. c("var.name"=1)
-arrange.vars <- function(data, vars){
-  ##stop if not a data.frame (but should work for matrices as well)
-  stopifnot(is.data.frame(data))
-  
-  ##sort out inputs
-  data.nms <- names(data)
-  var.nr <- length(data.nms)
-  var.nms <- names(vars)
-  var.pos <- vars
-  ##sanity checks
-  stopifnot( !any(duplicated(var.nms)), 
-             !any(duplicated(var.pos)) )
-  stopifnot( is.character(var.nms), 
-             is.numeric(var.pos) )
-  stopifnot( all(var.nms %in% data.nms) )
-  stopifnot( all(var.pos > 0), 
-             all(var.pos <= var.nr) )
-  
-  ##prepare output
-  out.vec <- character(var.nr)
-  out.vec[var.pos] <- var.nms
-  out.vec[-var.pos] <- data.nms[ !(data.nms %in% var.nms) ]
-  stopifnot( length(out.vec)==var.nr )
-  
-  ##re-arrange vars by position
-  data <- data[ , out.vec]
-  return(data)
-}
+
 
 
 #### Sites Processing ####
@@ -131,19 +148,7 @@ neon_site <- neon_site %>%
 neon_site <- arrange.vars(neon_site, c("data_availability"=3))
 
 
-#### Stats Function ####
-ggplotRegression <- function (fit) {
-  
-  require(ggplot2)
-  
-  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
-    geom_point() +
-    stat_smooth(method = "lm", col = "red") +
-    labs(title = paste("Adj R2 = ",signif(summary(fit)$adj.r.squared, 5),
-                       "Intercept =",signif(fit$coef[[1]],5 ),
-                       " Slope =",signif(fit$coef[[2]], 5),
-                       " P =",signif(summary(fit)$coef[2,4], 5)))
-}
+
 
  #### UI ####
 
@@ -269,8 +274,13 @@ dashboardBody(
             ), #closes sideBar Panel
             
             mainPanel(
-              plotlyOutput("plot2")
-            ) #closes main Panel
+              plotlyOutput("plot2"),
+              br()
+            ), #closes main Panel
+            
+            box(status = "primary", width = 12, 
+                verbatimTextOutput("sum")),
+            
             
             
 
@@ -420,14 +430,9 @@ dashboardBody(
             box(status = "primary", width = 12, 
                 strong(p("Glossary", align = "center"))),
 
-  
-            
             
     )  #closes References
 
-            
-    
-    
     ) #closes tabItems
   ) # closes dashboardBody
 ) # closes dashboardPage 
@@ -460,7 +465,8 @@ server <- function (input, output){
       #plot
       p <- ggplot(data = neon_sample_meta_avg, aes_string(x=input$xvar, y=input$yvar)) +
         theme_bw() +
-        geom_point(aes(text = paste("site:", site)))
+        geom_point(aes(text = paste("site:", site))) 
+        # coef(lmList(input$yvar~input$xvar , data =neon_sample_meta_avg ))
       
         # trendline(input$xvar, nput$yvar, model = "line2P", plot = TRUE, linecolor = "red",
         #           lty = 1, lwd = 1, summary = TRUE, ePos = "topleft", eDigit = 5,
@@ -484,8 +490,17 @@ server <- function (input, output){
     
     p
   })
+  
+  # print out summary of results
+  output$sum <- renderPrint({
+    # summary(neon_sample_meta_avg[input$yvar,input$xvar])
+    # summary(neon_sample_meta_avg[as.numeric(input$yvar),as.numeric(input$xvar)])
+    summary(neon_sample_meta_avg[[as.numeric(input$xvar)]])
+    
+    
+  })
 
-  #### Individual Sites ####
+  #### Individual Sites Server####
   
   #Extract site data
   neon_subset <- reactive({
