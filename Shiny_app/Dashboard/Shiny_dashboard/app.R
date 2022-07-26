@@ -16,6 +16,7 @@ library(shinyTime)
 library(shinyWidgets)
 library(sp) #mapping
 library(tidyverse)
+library(viridis)
 
 ##arrange df vars by position
 ##'vars' must be a named vector, e.g. c("var.name"=1)
@@ -78,19 +79,16 @@ neon_site<-read.csv("NEON_Field_Site_Metadata.csv",
 # neon_site <- neon_site %>%
   # rename(neon_site, field_longitude = Longitude)
 
-# names(neon_site)[3] <- 'Name'
-# names(neon_site)[4] <- 'Type'
-# names(neon_site)[5] <- 'Subtype'
-# names(neon_site)[12] <- 'Latitude'
-# names(neon_site)[13] <- 'Longitude'
-
-# names(neon_site)[21] <- 'Mean_Elevation_(m)'
-# names(neon_site)[24] <- 'Mean_Annual_Temperature_(C)'
-# names(neon_site)[25] <- 'Mean_Annual_Precipitation_(mm)'
-# names(neon_site)[32] <- 'Watershed_Size_(km)'
-
-
-
+names(neon_site)[3] <- 'Name'
+names(neon_site)[4] <- 'Type'
+names(neon_site)[5] <- 'Subtype'
+names(neon_site)[12] <- 'Latitude'
+names(neon_site)[13] <- 'Longitude'
+names(neon_site)[19] <- 'State'
+names(neon_site)[21] <- 'Elevation (m)'
+names(neon_site)[24] <- 'Temperature (°C)'
+names(neon_site)[25] <- 'Precipitation (mm)'
+names(neon_site)[32] <- 'Watershed Size (km2)'
 
 
 
@@ -116,6 +114,7 @@ uv_type <- uv_draft[ - c(1, 4, 5)]
 
 site_variables <- unlist(list(colnames(neon_site)))
 numeric_variables <- site_variables[- c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,22,23,26,27,28,29,30,31,33,34,35,36,37,38,39,40,41,42,43,44,45,46)]
+color_variables <- site_variables[- c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,22,23,26,27,28,29,30,31,33,34,35,36,37,38,39,40,41,42,43,44,45,46)]
 
 
  ####Individual Sites Processing ####
@@ -259,16 +258,24 @@ dashboardBody(
     tabItem(tabName = "Tab2",
             
             #Header     
-            h1("Macro Trends", align = 'center'),
+            h2("Macro Trends", align = 'center'),
+            h4("On this tab, you can observe trends at a macrosystems level.
+               Higher absorbance at 254 nm and 280 nm indicates the presence of higher levels 
+               of DOM, including aromatic compounds, in water. Select a variable for the x-axis 
+               and a wavelength of ultraviolet light to display a specific trend. Use the 'color by' 
+               option to see how two variables intearct."),
             br(),
             sidebarPanel(
-            selectInput("xvar", label = h3("Select x variable"),
+            selectInput("xvar", label = h4("x variable"),
                         choices = numeric_variables,
                         selected = 1),
-            selectInput("yvar", label = h3("Select uv freq"),
+            selectInput("yvar", label = h4("ultraviolet frequency"),
                         choices = uv_type,
                         # choices = colnames(uv_variables),
                         selected = 1),
+            selectInput("colorby", label = h4("color by"),
+                        choices = color_variables,
+                        selected = 2),
             checkboxInput("checkboxline", label = "Plot Linear Regression", value = FALSE),
             checkboxInput("checkboxlog", label = "Log 10", value = FALSE),
             ), #closes sideBar Panel
@@ -292,10 +299,11 @@ dashboardBody(
     tabItem(tabName = "Tab3",
             
             #Header     
-            h1("Individual Sites", align = 'center'),
-            br(),
-            
-            h3("On this tab, select sites to observe trends in UV absorbance vs time.", align = 'left'),
+            h2("Individual Sites", align = 'center'),
+            h4("On this tab, you can look at trends for individual sites over time.
+               Select site(s) to observe seasonal variation and fluctuations in DOM
+               concentrations. An icrease in UVA 250 and UVA 280 is correlated with
+               an increase in DOM concentration.", align = 'left'),
             br(),
             
             fluidRow(
@@ -354,12 +362,17 @@ dashboardBody(
     tabItem(tabName = "Tab4",
             
             #Header     
-            h1("Let's do Tab 4,",br(),"Cran stuff", align = 'center'),
+            h2("Time Frame", align = 'center'),
+            h4("Choose aa interval to see data from that time frame."),
             br(),
             
             sidebarPanel(
             dateInput(inputId='date4',label = 'Enter date: yyyy-mm-dd ', value = "2019-07-27"),
             timeInput("time", "Enter time", value = strptime(" 10:00:46", "%T")),
+            dateRangeInput('dateRange',
+                           label = 'Date range input: yyyy-mm-dd',
+                           start = Sys.Date() - 2, end = Sys.Date() + 2),
+            
                         ), #closes sideBar panel 
           
             mainPanel(
@@ -415,8 +428,8 @@ dashboardBody(
             box(status = "primary", width = 12, 
                 strong(p("Welcome", align = "center")),
                 p(a(href = "https://link.springer.com/article/10.1007/s10021-006-9013-8", 'Cole, J.J., Prairie, Y.T., Caraco, N.F., McDowell, W.H., Tranvik, L.J., Striegl, R.G., Duarte, C.M., Kortelainen, P., Downing, J.A., Middelburg, J.J., Melack, J., 2007. Plumbing the Global Carbon Cycle: Integrating Inland Waters into the Terrestrial Carbon Budget. Ecosystems 10, 172–185. https://doi.org/10.1007/s10021-006-9013-8')),
-                p("Cottrell, B.A., Gonsior, M., Isabelle, L.M., Luo, W., Perraud, V., McIntire, T.M., Pankow, J.F., Schmitt-Kopplin, P., Cooper, W.J., Simpson, A.J., 2013. A regional study of the seasonal variation in the molecular composition of rainwater. Atmos. Environ. 77, 588–597. https://doi.org/10.1016/j.atmosenv.2013.05.027"),
-                p("Fazekas, H.M., Wymore, A.S., McDowell, W.H., 2020. Dissolved Organic Carbon and Nitrate Concentration‐Discharge Behavior Across Scales: Land Use, Excursions, and Misclassification. Water Resour. Res. 56. https://doi.org/10.1029/2019WR027028"),
+                p(a(href = "https://www.sciencedirect.com/science/article/pii/S1352231013003701?via%3Dihub", 'Cottrell, B.A., Gonsior, M., Isabelle, L.M., Luo, W., Perraud, V., McIntire, T.M., Pankow, J.F., Schmitt-Kopplin, P., Cooper, W.J., Simpson, A.J., 2013. A regional study of the seasonal variation in the molecular composition of rainwater. Atmos. Environ. 77, 588–597. https://doi.org/10.1016/j.atmosenv.2013.05.027')),
+                p(a(href = "https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2019WR027028", 'Fazekas, H.M., Wymore, A.S., McDowell, W.H., 2020. Dissolved Organic Carbon and Nitrate Concentration‐Discharge Behavior Across Scales: Land Use, Excursions, and Misclassification. Water Resour. Res. 56.https://doi.org/10.1029/2019WR027028')),
                 p("Gutiérrez-Girón, A., Díaz-Pinés, E., Rubio, A., Gavilán, R.G., 2015. Both altitude and vegetation affect temperature sensitivity of soil organic matter decomposition in Mediterranean high mountain soils. Geoderma 237–238, 1–8. https://doi.org/10.1016/j.geoderma.2014.08.005"),
                 p("Heffernan, J.B., Soranno, P.A., Angilletta, M.J., Buckley, L.B., Gruner, D.S., Keitt, T.H., Kellner, J.R., Kominoski, J.S., Rocha, A.V., Xiao, J., Harms, T.K., Goring, S.J., Koenig, L.E., McDowell, W.H., Powell, H., Richardson, A.D., Stow, C.A., Vargas, R., Weathers, K.C., 2014. Macrosystems ecology: understanding ecological patterns and processes at continental scales. Front. Ecol. Environ. 12, 5–14. https://doi.org/10.1890/130017"),
                 p("Hosen, J.D., Aho, K.S., Appling, A.P., Creech, E.C., Fair, J.H., Hall, R.O., Kyzivat, E.D., Lowenthal, R.S., Matt, S., Morrison, J., Saiers, J.E., Shanley, J.B., Weber, L.C., Yoon, B., Raymond, P.A., 2019. Enhancement of primary production during drought in a temperate watershed is greater in larger rivers than headwater streams. Limnol. Oceanogr. 64, 1458–1472. https://doi.org/10.1002/lno.11127"),
@@ -463,9 +476,13 @@ server <- function (input, output){
       # lmodel<- lm(input$yvar~input$xvar)
     
       #plot
-      p <- ggplot(data = neon_sample_meta_avg, aes_string(x=input$xvar, y=input$yvar)) +
+      # p <- ggplot(data = neon_sample_meta_avg, aes_string(x=input$xvar, y=input$yvar)) +
+    p <- ggplot(data = neon_sample_meta_avg, aes(.data[[input$xvar]], y=.data[[input$yvar]])) +
         theme_bw() +
-        geom_point(aes(text = paste("site:", site))) 
+        geom_point(size = 3, aes(color = .data[[input$colorby]], text = paste("site:", site)))+
+        scale_color_viridis()+
+        theme(legend.position = c(0.7, 0.2),
+              legend.direction = "horizontal")  
         # coef(lmList(input$yvar~input$xvar , data =neon_sample_meta_avg ))
       
         # trendline(input$xvar, nput$yvar, model = "line2P", plot = TRUE, linecolor = "red",
@@ -495,9 +512,10 @@ server <- function (input, output){
   output$sum <- renderPrint({
     # summary(neon_sample_meta_avg[input$yvar,input$xvar])
     # summary(neon_sample_meta_avg[as.numeric(input$yvar),as.numeric(input$xvar)])
-    summary(neon_sample_meta_avg[[as.numeric(input$xvar)]])
-    
-    
+    # summary(neon_sample_meta_avg[[as.numeric(input$xvar)]])
+    uva_reg<-lm(input$xvar~input$yvar ,neon_sample_meta_avg)
+    # neon_sample_meta_avg$log10_uva_250<-log10(neon_sample_meta_avg$uva_250.mean)
+    # reg<-lm(field_mean_annual_precipitation_mm~log10_uva_250,neon_sample_meta_avg)
   })
 
   #### Individual Sites Server####
@@ -558,7 +576,8 @@ server <- function (input, output){
      mylist <-input$multiple_site_select # creates a list
     neon_site %>%
       filter(field_site_id %in% mylist) %>%
-      select(field_site_id, field_site_name,field_site_subtype, field_site_state, field_mean_annual_temperature_C, field_mean_annual_precipitation_mm) # selects sites from list
+      select(!!c(2,3,6,20,22,25,26))
+      # select(field_site_id, field_site_name,field_site_subtype, field_site_state, field_mean_annual_temperature_C, field_mean_annual_precipitation_mm) # selects sites from list
   })
   
   
@@ -599,8 +618,8 @@ server <- function (input, output){
     time_hms <- input$time
     cram_melt_onestamp<-subset(cram_melt,dtp==as.POSIXct(paste(date_mdy,"10:00:46", sep=" "),tz="UTC"))
     ggplot(cram_melt_onestamp,aes(wavelength,value))+
-      geom_point(size=2)+
-      geom_line(size=2)
+      geom_point(size=2)
+      # geom_line(size=2)
   })
   
 
