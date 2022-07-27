@@ -9,12 +9,14 @@ library(plotly)
 library(rgdal) #needed for read as OGR
 library(readxl)
 library(reshape2)
+library(scales)
 library(sf) #mapping
 library(shiny)
 library(shinydashboard)
 library(shinyTime)
 library(shinyWidgets)
 library(sp) #mapping
+library(stringr)
 library(tidyverse)
 library(viridis)
 
@@ -76,23 +78,68 @@ neon_site<-read.csv("NEON_Field_Site_Metadata.csv",
                     header=T, 
                     na.strings=c("","NA"))
 
-# neon_site <- neon_site %>%
-  # rename(neon_site, field_longitude = Longitude)
+neon_site <- neon_site %>%
+  rename(`Domain ID` = field_domain_id) %>%
+  # rename(Site = field_site_id) %>%
+  # rename(`Data Availability = data_availability`) %>% 
+  rename(Name = field_site_name) %>%
+  rename(Type= field_site_type) %>%
+  rename(Subtype = field_site_subtype) %>%
+  rename(`Colocated Site` = field_colocated_site) %>%
+  rename(Host = field_site_host) %>%
+  rename(URL= field_site_url) %>%
+  rename(`Non-NEON Research Allowed` = field_nonneon_research_allowed) %>% 
+  rename(`Field Access Details`= field_access_details) %>% 
+  rename(`NEON Field Operations Office` = field_neon_field_operations_office) %>% 
+  rename(Latitude = field_latitude) %>%
+  rename(Longitude = field_longitude) %>% 
+  rename(`Geodetic Datum` = field_geodetic_datum) %>% 
+  rename(`UTM Northing`= field_utm_northing) %>% 
+  rename(`UTM Easting`= field_utm_easting) %>% 
+  rename(`UTM Zone`= field_utm_zone) %>% 
+  rename(`County`= field_site_county) %>% 
+  rename(`State`= field_site_state) %>% 
+  rename(Country = field_site_country) %>% 
+  rename(`Mean Elevation (m)`= field_mean_elevation_m) %>% 
+  rename(`Minimun Elevation (m)`= field_minimum_elevation_m) %>% 
+  rename(`Maximum Elevation (m)`= field_maximum_elevation_m) %>% 
+  rename(`Mean Annual Temperature (°C)`= field_mean_annual_temperature_C) %>% 
+  rename(`Mean Annual Precipitation (mm)` = field_mean_annual_precipitation_mm) %>% 
+  rename(`Dominant Wind Direction` = field_dominant_wind_direction) %>% 
+  rename(`Mean Canopy Height (m)`= field_mean_canopy_height_m) %>% 
+  rename(`Dominant NLCD Classes` = field_dominant_nlcd_classes) %>% 
+  rename(`Dominant Plant Species`=field_domint_plant_species) %>% 
+  rename(`USGS HUC`=field_usgs_huc) %>% 
+  rename(`Watershed Name` = field_watershed_name) %>% 
+  rename(`Watershed Size (km2)`= field_watershed_size_km2) %>% 
+  rename(`Mean Lake Depth (m)`= field_lake_depth_mean_m) %>% 
+  rename(`Maximum Lake Depth (m)`= field_lake_depth_max_m) %>%
+  rename(`Tower Height (m)`=field_tower_height_m) %>% 
+  rename(`USGS Geology Unit`=field_usgs_geology_unit) %>% 
+  rename(`Megapit Soil Family`= field_megapit_soil_family) %>% 
+  rename(`Soil Subgroup`= field_soil_subgroup) %>% 
+  rename(`Average numvber of green days`= field_avg_number_of_green_days) %>% 
+  
+  rename(`Phenocams`= field_phenocams) %>% 
+  rename(`Number of Tower Levels`= field_number_tower_levels)
+  
+  
 
-names(neon_site)[3] <- 'Name'
-names(neon_site)[4] <- 'Type'
-names(neon_site)[5] <- 'Subtype'
-names(neon_site)[12] <- 'Latitude'
-names(neon_site)[13] <- 'Longitude'
-names(neon_site)[19] <- 'State'
-names(neon_site)[21] <- 'Elevation (m)'
-names(neon_site)[24] <- 'Temperature (°C)'
-names(neon_site)[25] <- 'Precipitation (mm)'
-names(neon_site)[32] <- 'Watershed Size (km2)'
+
+# names(neon_site)[3] <- 'Name'
+# names(neon_site)[4] <- 'Type'
+# names(neon_site)[5] <- 'Subtype'
+# names(neon_site)[12] <- 'Latitude'
+# names(neon_site)[13] <- 'Longitude'
+# names(neon_site)[19] <- 'State'
+# names(neon_site)[21] <- 'Elevation (m)'
+# names(neon_site)[24] <- 'Temperature (°C)'
+# names(neon_site)[25] <- 'Precipitation (mm)'
+# names(neon_site)[32] <- 'Watershed Size (km2)'
 
 
 
-# colnames(neon_site)[3] <- “Name”
+
 
 neon_site$site<-neon_site$field_site_id
 
@@ -116,6 +163,8 @@ site_variables <- unlist(list(colnames(neon_site)))
 numeric_variables <- site_variables[- c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,22,23,26,27,28,29,30,31,33,34,35,36,37,38,39,40,41,42,43,44,45,46)]
 color_variables <- site_variables[- c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,22,23,26,27,28,29,30,31,33,34,35,36,37,38,39,40,41,42,43,44,45,46)]
 
+# Creates new dataset with every sample's data merged with site data
+neon_samples_all <- merge(neon_sample,neon_site,by="site",all.x=TRUE)
 
  ####Individual Sites Processing ####
 
@@ -284,12 +333,6 @@ dashboardBody(
               plotlyOutput("plot2"),
               br()
             ), #closes main Panel
-            
-            box(status = "primary", width = 12, 
-                verbatimTextOutput("sum")),
-            
-            
-            
 
             
     ),  #closes tabItem 2
@@ -306,56 +349,48 @@ dashboardBody(
                an increase in DOM concentration.", align = 'left'),
             br(),
             
+            box(title = "Data Selection", status = "primary", width = 12, collapsible = TRUE,
+                
+                shinyjs::useShinyjs(), # requires package for "reset" button, DO NOT DELETE - make sure to add any new widget to the reset_input in the server
+                id = "exploration", # adds ID for resetting filters
+            
             fluidRow(
               tabBox(width = 12,
+                     tabPanel("Site(s)",
                               fluidRow(column(width = 4,
-                                              pickerInput(inputId = "multiple_site_select", 
+                                              pickerInput(inputId = "multiple_site_select",
                                                           label = "Select site(s):",
                                                           choices = site_list_unique,
                                                           selected = "ARIK",
-                                                          options = list(`actions-box` = TRUE), 
+                                                          options = list(`actions-box` = TRUE),
                                                           multiple = TRUE)),
- 
+
+
+
+                     )),
+                     tabPanel("UV frequency",
+                              fluidRow(column(width = 4,
+                                              selectInput("uv_freq", label = h4("ultraviolet frequency"),
+                                                          choices = list("uva_250" = 1, "uva_280" = 2),
+                                                          selected = 1)),
+                     )),
+                     tabPanel("Time Scale",
+                              fluidRow(column(width = 4,
+                                              selectInput("time_scale", label = h4("Select time scale"), 
+                                                          choices = list("Year" = 1, "Month" = 2), 
+                                                          selected = 1)),
                               
-                     ))), #close tabPanel + tabBox + fluidRow
+                    )),
+              ))
+            ),#closes box titled "Data Selection"
             
 
-            
-            # sidebarPanel(
-            #   fluidRow(
-            #     column(width = 4,
-            #            pickerInput(inputId = "multiple_site_select", 
-            #                        label = "Select site(s):",
-            #                        choices = site_list_unique,
-            #                        selected = "ARIK",
-            #                        options = list(`actions-box` = TRUE), 
-            #                        multiple = TRUE))), 
-            # selectInput("select", label = h3("Select site"), 
-            #             choices = site_list_unique, 
-            #             selected = 1),
-            # checkboxInput("checkbox250", label = "254 nm", value = TRUE),
-            # checkboxInput("checkbox280", label = "280 nm", value = FALSE),
-            # radioButtons("site_attributes", label = "Display Site Attributes"),
-            # ), #closes sidebarPanel
-            
-            
-            # mainPanel(
-            #   plotlyOutput("plot3"),
-            #   tableOutput("table3")
-            # )
-            
-            # mainPanel( 
-            fluidRow(
-              splitLayout(cellWidths = c("50%", "50%"), plotlyOutput("uva250"), plotlyOutput("uva280"))),
-                      # ) #closes main panel
-            
-             fluidRow(
-               tableOutput("table3")
-             )
-            
-            
-            
-            
+
+            # fluidRow(
+            #   splitLayout(cellWidths = c("50%", "50%"), plotlyOutput("uva250"), plotlyOutput("uva280"))),
+                      
+            mainPanel(plotlyOutput("plot3")) #closes main panel
+
     ),  #closes tabItem 3   
     
     #### Tab 4 UI #####
@@ -409,7 +444,7 @@ dashboardBody(
             
             box(status = "primary", width = 12, 
                 strong(p("POM: Particulate Organic Matter")),
-                p("Particulate organic matter is suspended, rather than dissolved, in water.")),
+                p("Particulate organic matter is suspended, rather than dissolved, in water. size. sources in streams.")),
             
             box(status = "primary", width = 12, 
                 strong(p("SUNA: Submersible Ultraviolet Nitrate Analyzer"))),
@@ -470,63 +505,151 @@ server <- function (input, output){
   
   #### Macro Trends Server ####
 
-
-  output$plot2 <- renderPlotly({
-      #linear model
-      # lmodel<- lm(input$yvar~input$xvar)
-    
-      #plot
-      # p <- ggplot(data = neon_sample_meta_avg, aes_string(x=input$xvar, y=input$yvar)) +
-    p <- ggplot(data = neon_sample_meta_avg, aes(.data[[input$xvar]], y=.data[[input$yvar]])) +
-        theme_bw() +
-        geom_point(size = 3, aes(color = .data[[input$colorby]], text = paste("site:", site)))+
-        scale_color_viridis()+
-        theme(legend.position = c(0.7, 0.2),
-              legend.direction = "horizontal")  
-        # coef(lmList(input$yvar~input$xvar , data =neon_sample_meta_avg ))
-      
-        # trendline(input$xvar, nput$yvar, model = "line2P", plot = TRUE, linecolor = "red",
-        #           lty = 1, lwd = 1, summary = TRUE, ePos = "topleft", eDigit = 5,
-        #           eSize = 1)
-        
-        # labs(title = paste("Adj R2 = ",signif(summary(lmodel)$adj.r.squared, 5),
-        #                    "Intercept =",signif(lmodel$coef[[1]],5 ),
-        #                    " Slope =",signif(lmodel$coef[[2]], 5),
-        #                    " P =",signif(summary(lmodel)$coef[2,4], 5)))
-      
-    
-    
-    if (input$checkboxline == TRUE){
-      p<-p+ geom_smooth(method = "lm", col = "red")+
-        stat_compare_means(method = "anova")
-      }
-
-    if (input$checkboxlog){
-      p<-p+ scale_x_log10()+scale_y_log10()  #trouble with longitude
-    }
-    
-    p
-  })
+# 
+#   output$plot2 <- renderPlotly({
+#       #linear model
+#       # lmodel<- lm(input$yvar~input$xvar)
+#     
+#       #plot
+#       # p <- ggplot(data = neon_sample_meta_avg, aes_string(x=input$xvar, y=input$yvar)) +
+#     p <- ggplot(data = neon_sample_meta_avg, aes(.data[[input$xvar]], y=.data[[input$yvar]])) +
+#         theme_bw() +
+#         geom_point(size = 3, aes(color = .data[[input$colorby]], text = paste("site:", site)))+
+#         scale_color_viridis()+
+#         theme(legend.position = "bottom") #ig <- fig %>% layout(legend = list(orientation = 'h'))
+#         # coef(lmList(input$yvar~input$xvar , data =neon_sample_meta_avg ))
+#       
+#         # trendline(input$xvar, nput$yvar, model = "line2P", plot = TRUE, linecolor = "red",
+#         #           lty = 1, lwd = 1, summary = TRUE, ePos = "topleft", eDigit = 5,
+#         #           eSize = 1)
+#         
+#         # labs(title = paste("Adj R2 = ",signif(summary(lmodel)$adj.r.squared, 5),
+#         #                    "Intercept =",signif(lmodel$coef[[1]],5 ),
+#         #                    " Slope =",signif(lmodel$coef[[2]], 5),
+#         #                    " P =",signif(summary(lmodel)$coef[2,4], 5)))
+#       
+#     
+#     
+#     if (input$checkboxline == TRUE){
+#       p<-p+ geom_smooth(method = "lm", col = "red")+
+#         stat_compare_means(method = "anova")
+#       }
+# 
+#     if (input$checkboxlog){
+#       p<-p+ scale_x_log10()+scale_y_log10()  #trouble with longitude
+#     }
+#     
+#     ggplotly(p) %>% layout(legend = list(orientation = 'h'))
+#   })
   
-  # print out summary of results
-  output$sum <- renderPrint({
-    # summary(neon_sample_meta_avg[input$yvar,input$xvar])
-    # summary(neon_sample_meta_avg[as.numeric(input$yvar),as.numeric(input$xvar)])
-    # summary(neon_sample_meta_avg[[as.numeric(input$xvar)]])
-    uva_reg<-lm(input$xvar~input$yvar ,neon_sample_meta_avg)
-    # neon_sample_meta_avg$log10_uva_250<-log10(neon_sample_meta_avg$uva_250.mean)
-    # reg<-lm(field_mean_annual_precipitation_mm~log10_uva_250,neon_sample_meta_avg)
-  })
+## Heili's Version ##
+
+# NOTE: THIS IS THE DATASET USED FOR THE LINEAR MODEL. It will include
+# all of the available data, rather than only the site-averaged values.
+
+macro_data <- reactive({
+  
+  neon_samples_all %>%
+    rename(uva_250.mean = uva_250, uva_280.mean = uva_280) %>% # just to make selection easier
+    select(.data[[input$xvar]], .data[[input$yvar]])
+  
+})
+
+output$plot2 <- renderPlotly({
+  
+  # Creates base plot
+  p <- ggplot(data = neon_sample_meta_avg,
+              aes(x=.data[[input$xvar]], y=.data[[input$yvar]])) +
+    # theme(legend.position = "bottom") +
+    theme_bw() +
+    labs(color = paste(strwrap(input$colorby, width = 12), collapse = "\n"))+
+    # labs(color = label_wrap(date, width = 20)) +
+    geom_point(size = 3,
+               aes(color = .data[[input$colorby]],
+                   text = paste("site:", site)))+
+    scale_color_viridis()
+
+  
+  # Re-scales on the log scale if box is checked
+  if (input$checkboxlog){
+    p <- p + scale_x_log10() + scale_y_log10()
+  }
+  
+  # Uses FULL DATASET to calculate linear model results  
+  new_dataset <- macro_data()
+  
+  uva_lm <- lm(new_dataset[,2] ~ new_dataset[,1])
+  
+  # Adds linear model statistics print outs if box is checked
+  # Note, the significant figures have been decreased to 2 in each case
+  # to better have everything fit at the top of the plot    
+  if (input$checkboxline == TRUE){
+    p <- p + geom_smooth(method = "lm", col = "red") +
+      stat_compare_means(method = "anova") +
+      labs(title = paste("Adj R2 = ",signif(summary(uva_lm)$adj.r.squared, 2),
+                         " Intercept =",signif(uva_lm$coef[[1]], 2),
+                         " Slope =",signif(uva_lm$coef[[2]], 2),
+                         " P =",signif(summary(uva_lm)$coef[2,4], 2))) +
+      theme(text = element_text(size = 10))
+  }
+  
+  # Everything below now considers the figure as a plotly rather than a ggplot object:
+  
+  pplot <- ggplotly(p)
+  
+  pplot
+  
+})
+
 
   #### Individual Sites Server####
   
   #Extract site data
   neon_subset <- reactive({
     neon_sample %>% filter(site==input$multiple_site_select)%>%
-      mutate(date=ymd_hm(collectDate))
-  })
-  
+      mutate(date=as.POSIXct(collectDate, format="%m/%d/%y %H:%M")) })
 
+output$plot3 <- renderPlotly({
+
+#Create Base Plot
+q <- ggplot(data = neon_subset())+
+  theme_bw()+
+  xlab('Time')
+
+if(input$time_scale == 1){ #for 254 nm
+  q <- q + ylab('UV Absorbance at 254 nm')
+  
+  if(input$time_scale == 1){ ##By Year for 254 nm
+    q <- q + geom_point(aes(x = date, y = uva_250, color = site))
+  } else { ##By Month for 254 nm
+    q <- q + geom_point(aes(x = month(date, label=TRUE), y=uva_250, color=site, shape = as.factor(year(date))))+
+      labs(shape = "Year Sampled")
+  }}
+  
+ else { #for 280 nm
+  q <- q + ylab('UV Absorbance at 280 nm')
+  
+  if(input$time_scale == 1){ ##By Year for 254 nm
+    q <- q + geom_point(aes(x = date, y = uva_280, color = site))
+  } else { ##By Month for 254 nm
+    q <- q + geom_point(aes(x = month(date, label=TRUE), y=uva_280, color=site, shape = as.factor(year(date))))+
+      labs(shape = "Year Sampled")
+  }}
+
+
+
+# #Month vs Year
+# if(input$time_scale == 1){ ##By Year
+#   q <- q + geom_point(aes(x = date, y = uva_280, color = site))
+# } else { ##By Month
+#   q <- q + geom_point(aes(x = month(date, label=TRUE), y=uva_250, color=site, shape = as.factor(year(date))))+
+#     labs(shape = "Year Sampled")
+# }
+
+qplot <- ggplotly(q)
+qplot
+  
+})
   
   # Plot site data
   output$uva250 <- renderPlotly({
@@ -535,8 +658,9 @@ server <- function (input, output){
       theme_bw()+
       xlab('Time') +
       ylab('UV Absorbance at 254 nm')+
-      geom_point(aes(x = date, y = uva_250, color = site))+
-      geom_line(aes(x = date, y = uva_250, color = site))
+      geom_point(aes(x = month(date, label=TRUE), y=input$uva_250, color=site, shape = as.factor(year(date))))+
+      labs(shape = "Year Sampled")
+    
   }) #closes renderPlotly for uv250
   
   
@@ -544,10 +668,6 @@ server <- function (input, output){
   output$uva280 <- renderPlotly({
     ggplot(data = neon_subset()) + 
       theme_bw()+
-      # theme(
-      #   axis.title.x = element_text(color="blue", size=14, face="bold"),
-      #   axis.title.y = element_text(color="#993333", size=14, face="bold")
-      # )+
       xlab('Time') +
       ylab('UV Absorbance at 280 nm')+
       geom_point(aes(x = date, y = uva_280, color = site))+
