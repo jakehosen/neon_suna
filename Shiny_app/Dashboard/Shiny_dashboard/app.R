@@ -1,4 +1,5 @@
 library(doBy)
+# library(fontawesome) #create icons for the shiny tabs
 library(ggplot2)
 library(ggpubr) #to display regression analysis
 library(leaflet) #interactive maps
@@ -190,10 +191,10 @@ cram_melt<-subset(cram_melt,wavelength>=200)
 
 neon_site <- neon_site %>%
   mutate(
-    data_availability = if_else(
-      neon_site$field_site_id%in% site_list_unique, "YES", "NO"
+    Data_Availability = if_else(
+      neon_site$field_site_id%in% site_list_unique, "Yes", "No"
     ))
-neon_site <- arrange.vars(neon_site, c("data_availability"=3))
+neon_site <- arrange.vars(neon_site, c("Data_Availability"=3))
 
 
 
@@ -206,14 +207,14 @@ ui <- dashboardPage(
   dashboardSidebar(width = 175,
   
     sidebarMenu(
-      menuItem("Welcome", tabName = "Welcome", icon = icon("home")),
+      menuItem("Welcome", tabName = "Welcome", icon = icon("home")), #home
       menuItem("Map", tabName = "Map", icon = icon("map")),
       menuItem("Macro Trends", tabName = "Tab2", icon = icon("globe")),
-      menuItem("Individual Sites", tabName = "Tab3", icon = icon("search")),
+      menuItem("Individual Sites", tabName = "Tab3", icon = icon("search")), #search
       menuItem("Time Frame", tabName = "Tab4", icon = icon("chart-bar")),
-      menuItem("Sites", tabName = "Sites", icon = icon("globe")),
+      menuItem("Site Info", tabName = "Sites", icon = icon("location")),
       menuItem("Glossary", tabName = "Glossary", icon = icon("book")),
-      menuItem("References", tabName = "References", icon = icon("book")))
+      menuItem("References", tabName = "References", icon = icon("table")))
   
     ), #End dashboard sidebar
 
@@ -345,7 +346,7 @@ dashboardBody(
             h2("Individual Sites", align = 'center'),
             h4("On this tab, you can look at trends for individual sites over time.
                Select site(s) to observe seasonal variation and fluctuations in DOM
-               concentrations. An icrease in UVA 250 and UVA 280 is correlated with
+               concentrations. An increase in UVA 250 and UVA 280 is correlated with
                an increase in DOM concentration.", align = 'left'),
             br(),
             
@@ -440,17 +441,29 @@ dashboardBody(
             br(),
             
             box(status = "primary", width = 12, 
-                strong(p("DOM: Dissolved Organic Matter"))),
+                strong(p("DOM: Dissolved Organic Matter")),
+                p("Dissolved Organic Matter 
+                  Particles are small, usually under 0.45 μm.")),
             
             box(status = "primary", width = 12, 
                 strong(p("POM: Particulate Organic Matter")),
-                p("Particulate organic matter is suspended, rather than dissolved, in water. size. sources in streams.")),
+                p("Particulate organic matter is suspended, rather than dissolved, in water. 
+                  Like DOM, it originates from leaves, soil, algae and similar sources.
+                  Particles are larger than DOM particles, ranging from 0.45 μm - 500 μm.")),
             
             box(status = "primary", width = 12, 
-                strong(p("SUNA: Submersible Ultraviolet Nitrate Analyzer"))),
+                strong(p("SUNA: Submersible Ultraviolet Nitrate Analyzer")),
+                p("The SUNA works by lighting a water sample with its deuterium UV light source 
+                and measureing this with its spectrometer. The difference between this measurement and a prior baseline
+                measurement of pure water is the absorption spectrum. This data, when calibrated,
+                is a good proxy for DOM concentration.")),
             
             box(status = "primary", width = 12, 
-                strong(p("UVA 250: Ultraviolet Absorption at 250 nm"))),
+                strong(p("UVA 250: Ultraviolet Absorption at 250 nm")),
+                p('"Specific UV absorbance (SUVA), determined at 254 nm, is strongly correlated with percent aromaticity 
+                  as determined by 13C NMR for 13 organic matter isolates obtained from a variety
+                  of aquatic environments. SUVA, therefore, is shown to be a useful parameter for 
+                  estimating the dissolved aromatic carbon content in aquatic systems." (Weishaar et al.)')),
             
             box(status = "primary", width = 12, 
                 strong(p("UVA 280: Ultraviolet Absorption at 280 nm"))),
@@ -465,18 +478,24 @@ dashboardBody(
                 p(a(href = "https://link.springer.com/article/10.1007/s10021-006-9013-8", 'Cole, J.J., Prairie, Y.T., Caraco, N.F., McDowell, W.H., Tranvik, L.J., Striegl, R.G., Duarte, C.M., Kortelainen, P., Downing, J.A., Middelburg, J.J., Melack, J., 2007. Plumbing the Global Carbon Cycle: Integrating Inland Waters into the Terrestrial Carbon Budget. Ecosystems 10, 172–185. https://doi.org/10.1007/s10021-006-9013-8')),
                 p(a(href = "https://www.sciencedirect.com/science/article/pii/S1352231013003701?via%3Dihub", 'Cottrell, B.A., Gonsior, M., Isabelle, L.M., Luo, W., Perraud, V., McIntire, T.M., Pankow, J.F., Schmitt-Kopplin, P., Cooper, W.J., Simpson, A.J., 2013. A regional study of the seasonal variation in the molecular composition of rainwater. Atmos. Environ. 77, 588–597. https://doi.org/10.1016/j.atmosenv.2013.05.027')),
                 p(a(href = "https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2019WR027028", 'Fazekas, H.M., Wymore, A.S., McDowell, W.H., 2020. Dissolved Organic Carbon and Nitrate Concentration‐Discharge Behavior Across Scales: Land Use, Excursions, and Misclassification. Water Resour. Res. 56.https://doi.org/10.1029/2019WR027028')),
-                p("Gutiérrez-Girón, A., Díaz-Pinés, E., Rubio, A., Gavilán, R.G., 2015. Both altitude and vegetation affect temperature sensitivity of soil organic matter decomposition in Mediterranean high mountain soils. Geoderma 237–238, 1–8. https://doi.org/10.1016/j.geoderma.2014.08.005"),
-                p("Heffernan, J.B., Soranno, P.A., Angilletta, M.J., Buckley, L.B., Gruner, D.S., Keitt, T.H., Kellner, J.R., Kominoski, J.S., Rocha, A.V., Xiao, J., Harms, T.K., Goring, S.J., Koenig, L.E., McDowell, W.H., Powell, H., Richardson, A.D., Stow, C.A., Vargas, R., Weathers, K.C., 2014. Macrosystems ecology: understanding ecological patterns and processes at continental scales. Front. Ecol. Environ. 12, 5–14. https://doi.org/10.1890/130017"),
-                p("Hosen, J.D., Aho, K.S., Appling, A.P., Creech, E.C., Fair, J.H., Hall, R.O., Kyzivat, E.D., Lowenthal, R.S., Matt, S., Morrison, J., Saiers, J.E., Shanley, J.B., Weber, L.C., Yoon, B., Raymond, P.A., 2019. Enhancement of primary production during drought in a temperate watershed is greater in larger rivers than headwater streams. Limnol. Oceanogr. 64, 1458–1472. https://doi.org/10.1002/lno.11127"),
-                p("Mellec, A., Meesenburg, H., Michalzik, B., 2010. The importance of canopy-derived dissolved and particulate organic matter (DOM and POM) — comparing throughfall solution from broadleaved and coniferous forests. Ann. For. Sci. 67, 411–411. https://doi.org/10.1051/forest/2009130")),
-            
+                p(a(href= "https://www.sciencedirect.com/science/article/pii/S0016706114003061",'Gutiérrez-Girón, A., Díaz-Pinés, E., Rubio, A., Gavilán, R.G., 2015. Both altitude and vegetation affect temperature sensitivity of soil organic matter decomposition in Mediterranean high mountain soils. Geoderma 237–238, 1–8. https://doi.org/10.1016/j.geoderma.2014.08.005')),
+                p(a(href="https://esajournals.onlinelibrary.wiley.com/doi/full/10.1890/130017", 'Heffernan, J.B., Soranno, P.A., Angilletta, M.J., Buckley, L.B., Gruner, D.S., Keitt, T.H., Kellner, J.R., Kominoski, J.S., Rocha, A.V., Xiao, J., Harms, T.K., Goring, S.J., Koenig, L.E., McDowell, W.H., Powell, H., Richardson, A.D., Stow, C.A., Vargas, R., Weathers, K.C., 2014. Macrosystems ecology: understanding ecological patterns and processes at continental scales. Front. Ecol. Environ. 12, 5–14. https://doi.org/10.1890/130017')),  
+                p(a(href="https://aslopubs.onlinelibrary.wiley.com/doi/10.1002/lno.11127", 'Hosen, J.D., Aho, K.S., Appling, A.P., Creech, E.C., Fair, J.H., Hall, R.O., Kyzivat, E.D., Lowenthal, R.S., Matt, S., Morrison, J., Saiers, J.E., Shanley, J.B., Weber, L.C., Yoon, B., Raymond, P.A., 2019. Enhancement of primary production during drought in a temperate watershed is greater in larger rivers than headwater streams. Limnol. Oceanogr. 64, 1458–1472. https://doi.org/10.1002/lno.11127')),
+                p(a(href="https://doi.org/10.1051/forest/2009130", 'Mellec, A., Meesenburg, H., Michalzik, B., 2010. The importance of canopy-derived dissolved and particulate organic matter (DOM and POM) — comparing throughfall solution from broadleaved and coniferous forests. Ann. For. Sci. 67, 411–411. https://doi.org/10.1051/forest/2009130'))),
+                
+
             box(status = "primary", width = 12, 
                 strong(p("Map", align = "center")),
-                p(a(href = "https://www.neonscience.org/sites/default/files/FieldSitesMap-33x18-PosterwIndex.pdf", 'NEON'))),
+                p(a(href = "https://www.neonscience.org/sites/default/files/FieldSitesMap-33x18-PosterwIndex.pdf", 'NEON (National Ecological Observatory Network). Field Sites Map - Poster w Site Index. https://www.neonscience.org/sites/default/files/FieldSitesMap-33x18-Pos… (accessed 28 July 2020).'))),
             
             
             box(status = "primary", width = 12, 
-                strong(p("Glossary", align = "center"))),
+                strong(p("Glossary", align = "center")),
+                p(a(href="Weishaar, J. L.; Aiken, G. R.; Bergamaschi, B. A.; Fram, 
+                    M. S.; Fujii, R.; Mopper, K. Evaluation of Specific Ultraviolet Absorbance 
+                    as an Indicator of the Chemical Composition and Reactivity of Dissolved
+                    Organic Carbon. Environ. Sci. Technol. 2003, 37 (20), 4702–4708. 
+                    https://doi.org/10.1021/es030360x."))),
 
             
     )  #closes References
@@ -584,13 +603,14 @@ output$plot2 <- renderPlotly({
   # Note, the significant figures have been decreased to 2 in each case
   # to better have everything fit at the top of the plot    
   if (input$checkboxline == TRUE){
-    p <- p + geom_smooth(method = "lm", col = "red") +
+    p <- p + geom_smooth(method = "lm", col = "black") +
       stat_compare_means(method = "anova") +
       labs(title = paste("Adj R2 = ",signif(summary(uva_lm)$adj.r.squared, 2),
                          " Intercept =",signif(uva_lm$coef[[1]], 2),
                          " Slope =",signif(uva_lm$coef[[2]], 2),
                          " P =",signif(summary(uva_lm)$coef[2,4], 2))) +
-      theme(text = element_text(size = 10))
+      theme(text = element_text(size = 10)) +
+      ylab("Mean Absorbance at 254 nm") #must remove
   }
   
   # Everything below now considers the figure as a plotly rather than a ggplot object:
@@ -616,27 +636,31 @@ q <- ggplot(data = neon_subset())+
   theme_bw()+
   xlab('Time')
 
-if(input$time_scale == 1){ #for 254 nm
-  q <- q + ylab('UV Absorbance at 254 nm')
-  
-  if(input$time_scale == 1){ ##By Year for 254 nm
-    q <- q + geom_point(aes(x = date, y = uva_250, color = site))
-  } else { ##By Month for 254 nm
-    q <- q + geom_point(aes(x = month(date, label=TRUE), y=uva_250, color=site, shape = as.factor(year(date))))+
-      labs(shape = "Year Sampled")
-  }}
-  
- else { #for 280 nm
-  q <- q + ylab('UV Absorbance at 280 nm')
-  
-  if(input$time_scale == 1){ ##By Year for 254 nm
-    q <- q + geom_point(aes(x = date, y = uva_280, color = site))
-  } else { ##By Month for 254 nm
-    q <- q + geom_point(aes(x = month(date, label=TRUE), y=uva_280, color=site, shape = as.factor(year(date))))+
-      labs(shape = "Year Sampled")
-  }}
+#By Year, 250 nm
+if(input$time_scale == 1 & input$uv_freq == 1){ 
+  q <- q + ylab('UV Absorbance at 254 nm') +
+    geom_point(aes(x = date, y = uva_250, color = site))
+}
 
+#By Year, 280 nm
+if(input$time_scale == 1 & input$uv_freq == 2){ 
+  q <- q + ylab('UV Absorbance at 280 nm') +
+    geom_point(aes(x = date, y = uva_280, color = site))
+}
 
+#By Month, 250 nm
+if(input$time_scale == 2 & input$uv_freq == 1){ 
+  q <- q + ylab('UV Absorbance at 254 nm') +
+    geom_point(aes(x = month(date, label=TRUE), y=uva_250, color=site, shape = as.factor(year(date))))+
+    labs(shape = "Year Sampled")
+}
+
+#By Month, 280 nm 
+if(input$time_scale == 2 & input$uv_freq == 2){ 
+  q <- q + ylab('UV Absorbance at 280 nm') +
+    geom_point(aes(x = month(date, label=TRUE), y=uva_280, color=site, shape = as.factor(year(date))))+
+    labs(shape = "Year Sampled")
+}
 
 # #Month vs Year
 # if(input$time_scale == 1){ ##By Year
