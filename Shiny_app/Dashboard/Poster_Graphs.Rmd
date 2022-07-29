@@ -1,0 +1,245 @@
+---
+title: "poster_graph"
+author: "Rija Masroor"
+date: "2022-07-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(doBy)
+library(ggplot2)
+library(ggpubr) #to display regression analysis
+library(leaflet) #interactive maps
+library(lubridate)
+library(nlme)
+library(plotly)
+# library(plyr)
+library(rgdal) #needed for read as OGR
+library(readxl)
+library(reshape2)
+library(scales)
+library(sf) #mapping
+library(shiny)
+library(shinydashboard)
+library(shinyTime)
+library(shinyWidgets)
+library(sp) #mapping
+library(stringr)
+library(tidyverse)
+library(viridis)
+
+##arrange df vars by position
+##'vars' must be a named vector, e.g. c("var.name"=1)
+arrange.vars <- function(data, vars){
+  ##stop if not a data.frame (but should work for matrices as well)
+  stopifnot(is.data.frame(data))
+  
+  ##sort out inputs
+  data.nms <- names(data)
+  var.nr <- length(data.nms)
+  var.nms <- names(vars)
+  var.pos <- vars
+  ##sanity checks
+  stopifnot( !any(duplicated(var.nms)), 
+             !any(duplicated(var.pos)) )
+  stopifnot( is.character(var.nms), 
+             is.numeric(var.pos) )
+  stopifnot( all(var.nms %in% data.nms) )
+  stopifnot( all(var.pos > 0), 
+             all(var.pos <= var.nr) )
+  
+  ##prepare output
+  out.vec <- character(var.nr)
+  out.vec[var.pos] <- var.nms
+  out.vec[-var.pos] <- data.nms[ !(data.nms %in% var.nms) ]
+  stopifnot( length(out.vec)==var.nr )
+  
+  ##re-arrange vars by position
+  data <- data[ , out.vec]
+  return(data)
+}
+
+ggplotRegression <- function (fit) {
+  
+  require(ggplot2)
+  
+  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
+    geom_point() +
+    stat_smooth(method = "lm", col = "red") +
+    labs(title = paste("Adj R2 = ",signif(summary(fit)$adj.r.squared, 5),
+                       "Intercept =",signif(fit$coef[[1]],5 ),
+                       " Slope =",signif(fit$coef[[2]], 5),
+                       " P =",signif(summary(fit)$coef[2,4], 5)))
+}
+
+
+ #### Map Processing ####
+# options(stringsAsFactors=F)
+# neonDomains<-readOGR(".","NEON_Domains")
+ 
+
+
+
+ #### Macro Trends Processing ####
+neon_sample<-read.csv("neon_absorbance_grab_samples.csv")
+neon_site<-read.csv("NEON_Field_Site_Metadata.csv", 
+                    header=T, 
+                    na.strings=c("","NA"))
+
+neon_site <- neon_site %>%
+  rename(`Domain ID` = field_domain_id) %>%
+  # rename(Site = field_site_id) %>%
+  # rename(`Data Availability = data_availability`) %>% 
+  rename(Name = field_site_name) %>%
+  rename(Type= field_site_type) %>%
+  rename(Subtype = field_site_subtype) %>%
+  rename(`Colocated Site` = field_colocated_site) %>%
+  rename(Host = field_site_host) %>%
+  rename(URL= field_site_url) %>%
+  rename(`Non-NEON Research Allowed` = field_nonneon_research_allowed) %>% 
+  rename(`Field Access Details`= field_access_details) %>% 
+  rename(`NEON Field Operations Office` = field_neon_field_operations_office) %>% 
+  rename(Latitude = field_latitude) %>%
+  rename(Longitude = field_longitude) %>% 
+  rename(`Geodetic Datum` = field_geodetic_datum) %>% 
+  rename(`UTM Northing`= field_utm_northing) %>% 
+  rename(`UTM Easting`= field_utm_easting) %>% 
+  rename(`UTM Zone`= field_utm_zone) %>% 
+  rename(`County`= field_site_county) %>% 
+  rename(`State`= field_site_state) %>% 
+  rename(Country = field_site_country) %>% 
+  rename(`Mean Elevation (m)`= field_mean_elevation_m) %>% 
+  rename(`Minimun Elevation (m)`= field_minimum_elevation_m) %>% 
+  rename(`Maximum Elevation (m)`= field_maximum_elevation_m) %>% 
+  rename(`Mean Annual Temperature (°C)`= field_mean_annual_temperature_C) %>% 
+  rename(`Mean Annual Precipitation (mm)` = field_mean_annual_precipitation_mm) %>% 
+  rename(`Dominant Wind Direction` = field_dominant_wind_direction) %>% 
+  rename(`Mean Canopy Height (m)`= field_mean_canopy_height_m) %>% 
+  rename(`Dominant NLCD Classes` = field_dominant_nlcd_classes) %>% 
+  rename(`Dominant Plant Species`=field_domint_plant_species) %>% 
+  rename(`USGS HUC`=field_usgs_huc) %>% 
+  rename(`Watershed Name` = field_watershed_name) %>% 
+  rename(`Watershed Size (km2)`= field_watershed_size_km2) %>% 
+  rename(`Mean Lake Depth (m)`= field_lake_depth_mean_m) %>% 
+  rename(`Maximum Lake Depth (m)`= field_lake_depth_max_m) %>%
+  rename(`Tower Height (m)`=field_tower_height_m) %>% 
+  rename(`USGS Geology Unit`=field_usgs_geology_unit) %>% 
+  rename(`Megapit Soil Family`= field_megapit_soil_family) %>% 
+  rename(`Soil Subgroup`= field_soil_subgroup) %>% 
+  rename(`Average numvber of green days`= field_avg_number_of_green_days) %>% 
+  
+  rename(`Phenocams`= field_phenocams) %>% 
+  rename(`Number of Tower Levels`= field_number_tower_levels)
+  
+  
+
+
+# names(neon_site)[3] <- 'Name'
+# names(neon_site)[4] <- 'Type'
+# names(neon_site)[5] <- 'Subtype'
+# names(neon_site)[12] <- 'Latitude'
+# names(neon_site)[13] <- 'Longitude'
+# names(neon_site)[19] <- 'State'
+# names(neon_site)[21] <- 'Elevation (m)'
+# names(neon_site)[24] <- 'Temperature (°C)'
+# names(neon_site)[25] <- 'Precipitation (mm)'
+# names(neon_site)[32] <- 'Watershed Size (km2)'
+
+
+
+
+
+neon_site$site<-neon_site$field_site_id
+
+
+neon_sample_meta<-merge(neon_sample,neon_site,by="site",all.x=TRUE)
+neon_sample_na<-subset(neon_sample,!is.na(uva_250))
+neon_sample_avg<-summaryBy(uva_250+uva_280~site,neon_sample_na,FUN=c(mean,sd))
+
+
+neon_sample_meta_avg<-merge(neon_sample_avg,neon_site,by="site",all.x=TRUE)
+
+
+
+uv_draft <- unlist(list(colnames(neon_sample_avg)))
+uv_type <- uv_draft[ - c(1, 4, 5)]
+
+# uv_variables <- neon_sample_meta_avg %>%
+#   select(uva_250.mean, uva_280.mean)
+
+site_variables <- unlist(list(colnames(neon_site)))
+numeric_variables <- site_variables[- c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,22,23,26,27,28,29,30,31,33,34,35,36,37,38,39,40,41,42,43,44,45,46)]
+color_variables <- site_variables[- c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,22,23,26,27,28,29,30,31,33,34,35,36,37,38,39,40,41,42,43,44,45,46)]
+
+# Creates new dataset with every sample's data merged with site data
+neon_samples_all <- merge(neon_sample,neon_site,by="site",all.x=TRUE)
+
+ ####Individual Sites Processing ####
+
+site_list_unique <- unlist(unique(neon_sample$site))
+
+```
+
+
+
+```{r}
+ macro_data <- reactive({
+  
+  neon_samples_all %>%
+    rename(uva_250.mean = uva_250, uva_280.mean = uva_280) %>% # just to make selection easier
+    select(.data[[input$xvar]], .data[[input$yvar]])
+  
+})
+ 
+new_dataset <- macro_data()
+  
+  uva_lm <- lm(new_dataset[,2] ~ new_dataset[,1])
+```
+
+
+
+
+```{r}
+  p <- ggplot(data = neon_sample_meta_avg,
+              aes(x=.data[[input$xvar]], y=.data[[input$yvar]])) +
+    theme_bw() +
+    labs(color = paste(strwrap(input$colorby, width = 12), collapse = "\n"))+
+    geom_point(size = 3,
+               aes(color = .data[[input$colorby]],
+                   text = paste("site:", site)))+
+    scale_color_viridis() +
+
+    p <- p + scale_x_log10() + scale_y_log10()
+
+      # Uses FULL DATASET to calculate linear model results  
+  new_dataset <- macro_data()
+  
+  uva_lm <- lm(new_dataset[,2] ~ new_dataset[,1])
+  
+  # Adds linear model statistics print outs if box is checked
+  # Note, the significant figures have been decreased to 2 in each case
+  # to better have everything fit at the top of the plot    
+  if (input$checkboxline == TRUE){
+    p <- p + geom_smooth(method = "lm", col = "black") +
+      stat_compare_means(method = "anova") +
+      labs(title = paste("Adj R2 = ",signif(summary(uva_lm)$adj.r.squared, 2),
+                         " Intercept =",signif(uva_lm$coef[[1]], 2),
+                         " Slope =",signif(uva_lm$coef[[2]], 2),
+                         " P =",signif(summary(uva_lm)$coef[2,4], 2))) +
+      theme(text = element_text(size = 10)) +
+      ylab("Mean Absorbance at 254 nm") #must remove
+  }
+  
+  # Everything below now considers the figure as a plotly rather than a ggplot object:
+  
+  pplot <- ggplotly(p)
+  
+  pplot
+
+
+```
+

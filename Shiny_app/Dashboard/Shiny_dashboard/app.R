@@ -207,12 +207,12 @@ ui <- dashboardPage(
   dashboardSidebar(width = 175,
   
     sidebarMenu(
-      menuItem("Welcome", tabName = "Welcome", icon = icon("home")), #home
+      menuItem("Welcome", tabName = "Welcome", icon = icon("home")),
       menuItem("Map", tabName = "Map", icon = icon("map")),
       menuItem("Macro Trends", tabName = "Tab2", icon = icon("globe")),
-      menuItem("Individual Sites", tabName = "Tab3", icon = icon("search")), #search
-      menuItem("Time Frame", tabName = "Tab4", icon = icon("chart-bar")),
-      menuItem("Site Info", tabName = "Sites", icon = icon("location")),
+      menuItem("Individual Sites", tabName = "Tab3", icon = icon("location")), 
+      # menuItem("Time Frame", tabName = "Tab4", icon = icon("chart-bar")),
+      menuItem("Site Info", tabName = "Sites", icon = icon("search")),
       menuItem("Glossary", tabName = "Glossary", icon = icon("book")),
       menuItem("References", tabName = "References", icon = icon("table")))
   
@@ -395,29 +395,29 @@ dashboardBody(
     ),  #closes tabItem 3   
     
     #### Tab 4 UI #####
-    tabItem(tabName = "Tab4",
+    # tabItem(tabName = "Tab4",
+    #         
+    #         #Header     
+    #         h2("Time Frame", align = 'center'),
+    #         h4("Choose aa interval to see data from that time frame."),
+    #         br(),
+    #         
+    #         sidebarPanel(
+    #         dateInput(inputId='date4',label = 'Enter date: yyyy-mm-dd ', value = "2019-07-27"),
+    #         timeInput("time", "Enter time", value = strptime(" 10:00:46", "%T")),
+    #         dateRangeInput('dateRange',
+    #                        label = 'Date range input: yyyy-mm-dd',
+    #                        start = Sys.Date() - 2, end = Sys.Date() + 2),
+    #         
+    #                     ), #closes sideBar panel 
+    #       
+    #         mainPanel(
+    #           plotlyOutput("plot4"),
+    #           hr(),
+    #           fluidRow(column(3, verbatimTextOutput("value"))),
+    #         )
             
-            #Header     
-            h2("Time Frame", align = 'center'),
-            h4("Choose aa interval to see data from that time frame."),
-            br(),
-            
-            sidebarPanel(
-            dateInput(inputId='date4',label = 'Enter date: yyyy-mm-dd ', value = "2019-07-27"),
-            timeInput("time", "Enter time", value = strptime(" 10:00:46", "%T")),
-            dateRangeInput('dateRange',
-                           label = 'Date range input: yyyy-mm-dd',
-                           start = Sys.Date() - 2, end = Sys.Date() + 2),
-            
-                        ), #closes sideBar panel 
-          
-            mainPanel(
-              plotlyOutput("plot4"),
-              hr(),
-              fluidRow(column(3, verbatimTextOutput("value"))),
-            )
-            
-    ),  #closes tabItem 4    
+    # ),  #closes tabItem 4    
     
 
     #### Sites UI #####
@@ -756,15 +756,15 @@ qplot
   # 
   # cram_melt_onestamp_2<-subset(cram_melt,dtp==as.POSIXct("2019-07-27 10:00:46",tz="UTC"))
   
-  output$plot4 <- renderPlotly({
-    
-    date_mdy <- input$date4
-    time_hms <- input$time
-    cram_melt_onestamp<-subset(cram_melt,dtp==as.POSIXct(paste(date_mdy,"10:00:46", sep=" "),tz="UTC"))
-    ggplot(cram_melt_onestamp,aes(wavelength,value))+
-      geom_point(size=2)
-      # geom_line(size=2)
-  })
+  # output$plot4 <- renderPlotly({
+  #   
+  #   date_mdy <- input$date4
+  #   time_hms <- input$time
+  #   cram_melt_onestamp<-subset(cram_melt,dtp==as.POSIXct(paste(date_mdy,"10:00:46", sep=" "),tz="UTC"))
+  #   ggplot(cram_melt_onestamp,aes(wavelength,value))+
+  #     geom_point(size=2)
+  #     # geom_line(size=2)
+  # })
   
 
   
