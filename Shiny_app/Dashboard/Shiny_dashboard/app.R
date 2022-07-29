@@ -609,8 +609,7 @@ output$plot2 <- renderPlotly({
                          " Intercept =",signif(uva_lm$coef[[1]], 2),
                          " Slope =",signif(uva_lm$coef[[2]], 2),
                          " P =",signif(summary(uva_lm)$coef[2,4], 2))) +
-      theme(text = element_text(size = 10)) +
-      ylab("Mean Absorbance at 254 nm") #must remove
+      theme(text = element_text(size = 10)) 
   }
   
   # Everything below now considers the figure as a plotly rather than a ggplot object:
