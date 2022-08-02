@@ -90,65 +90,6 @@ neon_site<-read.csv("NEON_Field_Site_Metadata.csv",
                     header=T, 
                     na.strings=c("","NA"))
 
-neon_site <- neon_site %>%
-  rename(`Domain ID` = field_domain_id) %>%
-  # rename(Site = field_site_id) %>%
-  # rename(`Data Availability = data_availability`) %>% 
-  rename(Name = field_site_name) %>%
-  rename(Type= field_site_type) %>%
-  rename(Subtype = field_site_subtype) %>%
-  rename(`Colocated Site` = field_colocated_site) %>%
-  rename(Host = field_site_host) %>%
-  rename(URL= field_site_url) %>%
-  rename(`Non-NEON Research Allowed` = field_nonneon_research_allowed) %>% 
-  rename(`Field Access Details`= field_access_details) %>% 
-  rename(`NEON Field Operations Office` = field_neon_field_operations_office) %>% 
-  rename(Latitude = field_latitude) %>%
-  rename(Longitude = field_longitude) %>% 
-  rename(`Geodetic Datum` = field_geodetic_datum) %>% 
-  rename(`UTM Northing`= field_utm_northing) %>% 
-  rename(`UTM Easting`= field_utm_easting) %>% 
-  rename(`UTM Zone`= field_utm_zone) %>% 
-  rename(`County`= field_site_county) %>% 
-  rename(`State`= field_site_state) %>% 
-  rename(Country = field_site_country) %>% 
-  rename(`Mean Elevation (m)`= field_mean_elevation_m) %>% 
-  rename(`Minimun Elevation (m)`= field_minimum_elevation_m) %>% 
-  rename(`Maximum Elevation (m)`= field_maximum_elevation_m) %>% 
-  rename(`Mean Annual Temperature (°C)`= field_mean_annual_temperature_C) %>% 
-  rename(`Mean Annual Precipitation (mm)` = field_mean_annual_precipitation_mm) %>% 
-  rename(`Dominant Wind Direction` = field_dominant_wind_direction) %>% 
-  rename(`Mean Canopy Height (m)`= field_mean_canopy_height_m) %>% 
-  rename(`Dominant NLCD Classes` = field_dominant_nlcd_classes) %>% 
-  rename(`Dominant Plant Species`=field_domint_plant_species) %>% 
-  rename(`USGS HUC`=field_usgs_huc) %>% 
-  rename(`Watershed Name` = field_watershed_name) %>% 
-  rename(`Watershed Size (km2)`= field_watershed_size_km2) %>% 
-  rename(`Mean Lake Depth (m)`= field_lake_depth_mean_m) %>% 
-  rename(`Maximum Lake Depth (m)`= field_lake_depth_max_m) %>%
-  rename(`Tower Height (m)`=field_tower_height_m) %>% 
-  rename(`USGS Geology Unit`=field_usgs_geology_unit) %>% 
-  rename(`Megapit Soil Family`= field_megapit_soil_family) %>% 
-  rename(`Soil Subgroup`= field_soil_subgroup) %>% 
-  rename(`Average numvber of green days`= field_avg_number_of_green_days) %>% 
-  
-  rename(`Phenocams`= field_phenocams) %>% 
-  rename(`Number of Tower Levels`= field_number_tower_levels)
-  
-  
-
-
-# names(neon_site)[3] <- 'Name'
-# names(neon_site)[4] <- 'Type'
-# names(neon_site)[5] <- 'Subtype'
-# names(neon_site)[12] <- 'Latitude'
-# names(neon_site)[13] <- 'Longitude'
-# names(neon_site)[19] <- 'State'
-# names(neon_site)[21] <- 'Elevation (m)'
-# names(neon_site)[24] <- 'Temperature (°C)'
-# names(neon_site)[25] <- 'Precipitation (mm)'
-# names(neon_site)[32] <- 'Watershed Size (km2)'
-
 
 
 
@@ -186,54 +127,23 @@ site_list_unique <- unlist(unique(neon_sample$site))
 
 
 
-```{r}
- macro_data <- reactive({
-  
-  neon_samples_all %>%
-    rename(uva_250.mean = uva_250, uva_280.mean = uva_280) %>% # just to make selection easier
-    select(.data[[input$xvar]], .data[[input$yvar]])
-  
-})
- 
-new_dataset <- macro_data()
-  
-  uva_lm <- lm(new_dataset[,2] ~ new_dataset[,1])
-```
-
 
 
 
 ```{r}
   p <- ggplot(data = neon_sample_meta_avg,
-              aes(x=.data[[input$xvar]], y=.data[[input$yvar]])) +
+              aes(x=field_mean_annual_precipitation_mm, y=uva_250.mean)) +
     theme_bw() +
-    labs(color = paste(strwrap(input$colorby, width = 12), collapse = "\n"))+
-    geom_point(size = 3,
-               aes(color = .data[[input$colorby]],
-                   text = paste("site:", site)))+
-    scale_color_viridis() +
+    geom_point(size = 3, aes(text = paste("site:", site)))+
+    scale_x_log10() + scale_y_log10() +
+  
+    geom_smooth(method = "lm", col = "black") +
+    stat_compare_means(method = "anova") +
+    labs(title = paste("Adj R2 = ",signif(summary(uva_lm)$adj.r.squared, 2),
+                       " Intercept =",signif(uva_lm$coef[[1]], 2),
+                       " Slope =",signif(uva_lm$coef[[2]], 2),
+                       " P =",signif(summary(uva_lm)$coef[2,4], 2))) +
 
-    p <- p + scale_x_log10() + scale_y_log10()
-
-      # Uses FULL DATASET to calculate linear model results  
-  new_dataset <- macro_data()
-  
-  uva_lm <- lm(new_dataset[,2] ~ new_dataset[,1])
-  
-  # Adds linear model statistics print outs if box is checked
-  # Note, the significant figures have been decreased to 2 in each case
-  # to better have everything fit at the top of the plot    
-  if (input$checkboxline == TRUE){
-    p <- p + geom_smooth(method = "lm", col = "black") +
-      stat_compare_means(method = "anova") +
-      labs(title = paste("Adj R2 = ",signif(summary(uva_lm)$adj.r.squared, 2),
-                         " Intercept =",signif(uva_lm$coef[[1]], 2),
-                         " Slope =",signif(uva_lm$coef[[2]], 2),
-                         " P =",signif(summary(uva_lm)$coef[2,4], 2))) +
-      theme(text = element_text(size = 10)) +
-      ylab("Mean Absorbance at 254 nm") #must remove
-  }
-  
   # Everything below now considers the figure as a plotly rather than a ggplot object:
   
   pplot <- ggplotly(p)
@@ -241,5 +151,144 @@ new_dataset <- macro_data()
   pplot
 
 
+```
+
+
+
+
+```{r} 
+
+#log 10 stats of precipitation 
+  precip_lm <- lm(log10(field_mean_annual_precipitation_mm)~log10(uva_250.mean), neon_sample_meta_avg)
+```
+
+
+```{r} 
+#log 10 plot of precipitation
+ggplot(neon_sample_meta_avg,aes(field_mean_annual_precipitation_mm,uva_250.mean))+
+geom_point(size=2)+
+theme_bw()+
+scale_x_log10()+ xlab("log 10 (Mean Annual Precipitation in mm)") +
+scale_y_log10()+ ylab("log 10 (UV Absorbance at 254 nm)") +
+geom_smooth(method = lm)+
+labs(title = paste("Adj R2 = ",signif(summary(precip_lm)$adj.r.squared, 2),
+                   " Intercept =",signif(precip_lm$coef[[1]], 2),
+                   " Slope =",signif(precip_lm$coef[[2]], 2),
+                   " P =",signif(summary(precip_lm)$coef[2,4], 2))) 
+
+
+```
+
+
+
+```{r} 
+
+#log 10 stats of field_latitude
+  field_latitude_lm <- lm(log10(field_latitude)~log10(uva_250.mean), neon_sample_meta_avg)
+```
+
+
+```{r} 
+#log 10 plot of field_latitude
+ggplot(neon_sample_meta_avg,aes(field_latitude,uva_250.mean))+
+geom_point(size=2)+
+theme_bw()+
+scale_x_log10()+ xlab("log 10 (Latitude)") +
+scale_y_log10()+ ylab("log 10 (UV Absorbance at 254 nm)") +
+geom_smooth(method = lm)+
+labs(title = paste("Adj R2 = ",signif(summary(field_latitude_lm)$adj.r.squared, 2),
+                   " Intercept =",signif(field_latitude_lm$coef[[1]], 2),
+                   " Slope =",signif(field_latitude_lm$coef[[2]], 2),
+                   " P =",signif(summary(field_latitude_lm)$coef[2,4], 2))) 
+
+
+```
+
+
+
+
+```{r} 
+
+#log 10 stats of field_mean_annual_temperature_C 
+  field_mean_annual_temperature_C_lm <- lm(log10(field_mean_annual_temperature_C)~log10(uva_250.mean), neon_sample_meta_avg)
+```
+
+
+```{r} 
+#log 10 plot of field_mean_annual_temperature_C
+ggplot(neon_sample_meta_avg,aes(field_mean_annual_temperature_C,uva_250.mean))+
+geom_point(size=6)+
+scale_color_viridis()+
+scale_x_log10()+ xlab("log 10 (Mean Annual Temperature (°C))") +
+scale_y_log10()+ ylab("log 10 (UV abosrbance at 254 nm)") +
+geom_smooth(method = lm)+
+labs(title = paste("Adj R2 = ",signif(summary(field_mean_annual_temperature_C_lm)$adj.r.squared, 2),
+                   " Intercept =",signif(field_mean_annual_temperature_C_lm$coef[[1]], 2),
+                   " Slope =",signif(field_mean_annual_temperature_C_lm$coef[[2]], 2),
+                   " P =",signif(summary(field_mean_annual_temperature_C_lm)$coef[2,4], 2))) 
+
+
+```
+
+
+
+
+
+```{r}
+#log 10 stats of field_mean_elevation_m
+  field_mean_elevation_m_lm <- lm(log10(field_mean_elevation_m)~log10(uva_250.mean), neon_sample_meta_avg)
+```
+
+```{r}
+#log 10 plot of field_mean_elevation_m
+ggplot(neon_sample_meta_avg,aes(field_mean_elevation_m,uva_250.mean))+
+geom_point(size=6)+
+scale_color_viridis()+
+scale_x_log10()+ xlab("log 10 (Mean Elevation (m))") +
+scale_y_log10()+ ylab("log 10 (UV abosrbance at 254 nm)") +
+geom_smooth(method = lm)+
+labs(title = paste("Adj R2 = ",signif(summary(field_mean_elevation_m_lm)$adj.r.squared, 2),
+                   " Intercept =",signif(field_mean_elevation_m_lm$coef[[1]], 2),
+                   " Slope =",signif(field_mean_elevation_m_lm$coef[[2]], 2),
+                   " P =",signif(summary(field_mean_elevation_m_lm)$coef[2,4], 2))) 
+
+```
+
+```{r}
+  neon_sample <- neon_sample %>% mutate(date=as.POSIXct(collectDate, format="%m/%d/%y %H:%M"))
+ 
+
+
+ggplot(data = neon_sample)+
+theme_bw()+
+xlab('Month') +
+ylab('log 10(UV Absorbance at 254 nm)') +
+geom_boxplot(aes(x = month(date, label=TRUE), y=log10(uva_250), color=month(date, label=TRUE)))+
+  theme(legend.position = "none")
+
+
+```
+
+
+
+```{r}
+```
+
+```{r}
+  neon_sample <- neon_sample %>% mutate(date=as.POSIXct(collectDate, format="%m/%d/%y %H:%M"))
+ 
+
+
+ggplot(data = neon_sample)+
+theme_bw()+
+xlab('Month') +
+ylab('log 10(UV Absorbance at 254 nm)') +
+geom_boxplot(aes(x = month(date, label=TRUE), y=log10(uva_250), color=month(date, label=TRUE)))+
+  theme(legend.position = "none")
+
+ylab('UV Absorbance at 254 nm') +
+    geom_point(aes(x = month(date, label=TRUE), y=uva_250, color=site, shape = as.factor(year(date))))+
+    labs(shape = "Year Sampled")
+```
 ```
 

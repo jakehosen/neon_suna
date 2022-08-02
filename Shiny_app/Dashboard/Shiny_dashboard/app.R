@@ -26,37 +26,37 @@ library(viridis)
 arrange.vars <- function(data, vars){
   ##stop if not a data.frame (but should work for matrices as well)
   stopifnot(is.data.frame(data))
-  
+
   ##sort out inputs
   data.nms <- names(data)
   var.nr <- length(data.nms)
   var.nms <- names(vars)
   var.pos <- vars
   ##sanity checks
-  stopifnot( !any(duplicated(var.nms)), 
+  stopifnot( !any(duplicated(var.nms)),
              !any(duplicated(var.pos)) )
-  stopifnot( is.character(var.nms), 
+  stopifnot( is.character(var.nms),
              is.numeric(var.pos) )
   stopifnot( all(var.nms %in% data.nms) )
-  stopifnot( all(var.pos > 0), 
+  stopifnot( all(var.pos > 0),
              all(var.pos <= var.nr) )
-  
+
   ##prepare output
   out.vec <- character(var.nr)
   out.vec[var.pos] <- var.nms
   out.vec[-var.pos] <- data.nms[ !(data.nms %in% var.nms) ]
   stopifnot( length(out.vec)==var.nr )
-  
+
   ##re-arrange vars by position
   data <- data[ , out.vec]
   return(data)
 }
 
 ggplotRegression <- function (fit) {
-  
+
   require(ggplot2)
-  
-  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
+
+  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) +
     geom_point() +
     stat_smooth(method = "lm", col = "red") +
     labs(title = paste("Adj R2 = ",signif(summary(fit)$adj.r.squared, 5),
@@ -69,62 +69,62 @@ ggplotRegression <- function (fit) {
  #### Map Processing ####
 # options(stringsAsFactors=F)
 # neonDomains<-readOGR(".","NEON_Domains")
- 
+
 
 
 
  #### Macro Trends Processing ####
 neon_sample<-read.csv("neon_absorbance_grab_samples.csv")
-neon_site<-read.csv("NEON_Field_Site_Metadata.csv", 
-                    header=T, 
+neon_site<-read.csv("NEON_Field_Site_Metadata.csv",
+                    header=T,
                     na.strings=c("","NA"))
 
 neon_site <- neon_site %>%
   rename(`Domain ID` = field_domain_id) %>%
   # rename(Site = field_site_id) %>%
-  # rename(`Data Availability = data_availability`) %>% 
+  # rename(`Data Availability = data_availability`) %>%
   rename(Name = field_site_name) %>%
   rename(Type= field_site_type) %>%
   rename(Subtype = field_site_subtype) %>%
   rename(`Colocated Site` = field_colocated_site) %>%
   rename(Host = field_site_host) %>%
   rename(URL= field_site_url) %>%
-  rename(`Non-NEON Research Allowed` = field_nonneon_research_allowed) %>% 
-  rename(`Field Access Details`= field_access_details) %>% 
-  rename(`NEON Field Operations Office` = field_neon_field_operations_office) %>% 
+  rename(`Non-NEON Research Allowed` = field_nonneon_research_allowed) %>%
+  rename(`Field Access Details`= field_access_details) %>%
+  rename(`NEON Field Operations Office` = field_neon_field_operations_office) %>%
   rename(Latitude = field_latitude) %>%
-  rename(Longitude = field_longitude) %>% 
-  rename(`Geodetic Datum` = field_geodetic_datum) %>% 
-  rename(`UTM Northing`= field_utm_northing) %>% 
-  rename(`UTM Easting`= field_utm_easting) %>% 
-  rename(`UTM Zone`= field_utm_zone) %>% 
-  rename(`County`= field_site_county) %>% 
-  rename(`State`= field_site_state) %>% 
-  rename(Country = field_site_country) %>% 
-  rename(`Mean Elevation (m)`= field_mean_elevation_m) %>% 
-  rename(`Minimun Elevation (m)`= field_minimum_elevation_m) %>% 
-  rename(`Maximum Elevation (m)`= field_maximum_elevation_m) %>% 
-  rename(`Mean Annual Temperature (°C)`= field_mean_annual_temperature_C) %>% 
-  rename(`Mean Annual Precipitation (mm)` = field_mean_annual_precipitation_mm) %>% 
-  rename(`Dominant Wind Direction` = field_dominant_wind_direction) %>% 
-  rename(`Mean Canopy Height (m)`= field_mean_canopy_height_m) %>% 
-  rename(`Dominant NLCD Classes` = field_dominant_nlcd_classes) %>% 
-  rename(`Dominant Plant Species`=field_domint_plant_species) %>% 
-  rename(`USGS HUC`=field_usgs_huc) %>% 
-  rename(`Watershed Name` = field_watershed_name) %>% 
-  rename(`Watershed Size (km2)`= field_watershed_size_km2) %>% 
-  rename(`Mean Lake Depth (m)`= field_lake_depth_mean_m) %>% 
+  rename(Longitude = field_longitude) %>%
+  rename(`Geodetic Datum` = field_geodetic_datum) %>%
+  rename(`UTM Northing`= field_utm_northing) %>%
+  rename(`UTM Easting`= field_utm_easting) %>%
+  rename(`UTM Zone`= field_utm_zone) %>%
+  rename(`County`= field_site_county) %>%
+  rename(`State`= field_site_state) %>%
+  rename(Country = field_site_country) %>%
+  rename(`Mean Elevation (m)`= field_mean_elevation_m) %>%
+  rename(`Minimun Elevation (m)`= field_minimum_elevation_m) %>%
+  rename(`Maximum Elevation (m)`= field_maximum_elevation_m) %>%
+  rename(`Mean Annual Temperature (°C)`= field_mean_annual_temperature_C) %>%
+  rename(`Mean Annual Precipitation (mm)` = field_mean_annual_precipitation_mm) %>%
+  rename(`Dominant Wind Direction` = field_dominant_wind_direction) %>%
+  rename(`Mean Canopy Height (m)`= field_mean_canopy_height_m) %>%
+  rename(`Dominant NLCD Classes` = field_dominant_nlcd_classes) %>%
+  rename(`Dominant Plant Species`=field_domint_plant_species) %>%
+  rename(`USGS HUC`=field_usgs_huc) %>%
+  rename(`Watershed Name` = field_watershed_name) %>%
+  rename(`Watershed Size (km2)`= field_watershed_size_km2) %>%
+  rename(`Mean Lake Depth (m)`= field_lake_depth_mean_m) %>%
   rename(`Maximum Lake Depth (m)`= field_lake_depth_max_m) %>%
-  rename(`Tower Height (m)`=field_tower_height_m) %>% 
-  rename(`USGS Geology Unit`=field_usgs_geology_unit) %>% 
-  rename(`Megapit Soil Family`= field_megapit_soil_family) %>% 
-  rename(`Soil Subgroup`= field_soil_subgroup) %>% 
-  rename(`Average numvber of green days`= field_avg_number_of_green_days) %>% 
-  
-  rename(`Phenocams`= field_phenocams) %>% 
+  rename(`Tower Height (m)`=field_tower_height_m) %>%
+  rename(`USGS Geology Unit`=field_usgs_geology_unit) %>%
+  rename(`Megapit Soil Family`= field_megapit_soil_family) %>%
+  rename(`Soil Subgroup`= field_soil_subgroup) %>%
+  rename(`Average numvber of green days`= field_avg_number_of_green_days) %>%
+
+  rename(`Phenocams`= field_phenocams) %>%
   rename(`Number of Tower Levels`= field_number_tower_levels)
-  
-  
+
+
 
 
 # names(neon_site)[3] <- 'Name'
@@ -148,6 +148,10 @@ neon_site$site<-neon_site$field_site_id
 neon_sample_meta<-merge(neon_sample,neon_site,by="site",all.x=TRUE)
 neon_sample_na<-subset(neon_sample,!is.na(uva_250))
 neon_sample_avg<-summaryBy(uva_250+uva_280~site,neon_sample_na,FUN=c(mean,sd))
+#TRY
+# neon_sample_avg <- neon_sample_avg %>%
+#   rename(`UV Absorbance at 254 nm` = uva_250.mean) %>%
+#   rename(`UV Absorbance at 280 nm` = uva_280.mean)
 
 
 neon_sample_meta_avg<-merge(neon_sample_avg,neon_site,by="site",all.x=TRUE)
@@ -156,6 +160,7 @@ neon_sample_meta_avg<-merge(neon_sample_avg,neon_site,by="site",all.x=TRUE)
 
 uv_draft <- unlist(list(colnames(neon_sample_avg)))
 uv_type <- uv_draft[ - c(1, 4, 5)]
+
 
 # uv_variables <- neon_sample_meta_avg %>%
 #   select(uva_250.mean, uva_280.mean)
@@ -210,7 +215,7 @@ ui <- dashboardPage(
       menuItem("Welcome", tabName = "Welcome", icon = icon("home")),
       menuItem("Map", tabName = "Map", icon = icon("map")),
       menuItem("Macro Trends", tabName = "Tab2", icon = icon("globe")),
-      menuItem("Individual Sites", tabName = "Tab3", icon = icon("location")), 
+      menuItem("In-depth", tabName = "Tab3", icon = icon("location")), 
       # menuItem("Time Frame", tabName = "Tab4", icon = icon("chart-bar")),
       menuItem("Site Info", tabName = "Sites", icon = icon("search")),
       menuItem("Glossary", tabName = "Glossary", icon = icon("book")),
@@ -344,10 +349,11 @@ dashboardBody(
             
             #Header     
             h2("Individual Sites", align = 'center'),
-            h4("On this tab, you can look at trends for individual sites over time.
-               Select site(s) to observe seasonal variation and fluctuations in DOM
-               concentrations. An increase in UVA 250 and UVA 280 is correlated with
-               an increase in DOM concentration.", align = 'left'),
+            h4("On this tab, you can look at trends in ultraviolet absorbance at 
+               254 nm or 280 nm for one sites or for multiple sites simultaneously.
+               You can also choose whether to observe trends by year or by month. 
+               Choose 'Year' to see trajectories over time. Choose 'Month'
+               to see seasonal variation in DOM composition.", align = 'left'),
             br(),
             
             box(title = "Data Selection", status = "primary", width = 12, collapsible = TRUE,
@@ -372,7 +378,7 @@ dashboardBody(
                      tabPanel("UV frequency",
                               fluidRow(column(width = 4,
                                               selectInput("uv_freq", label = h4("ultraviolet frequency"),
-                                                          choices = list("uva_250" = 1, "uva_280" = 2),
+                                                          choices = list("UV Absorbance at 254 nm" = 1, "UV Absorbance at 280 nm" = 2),
                                                           selected = 1)),
                      )),
                      tabPanel("Time Scale",
@@ -626,7 +632,7 @@ output$plot2 <- renderPlotly({
   #Extract site data
   neon_subset <- reactive({
     neon_sample %>% filter(site==input$multiple_site_select)%>%
-      mutate(date=as.POSIXct(collectDate, format="%m/%d/%y %H:%M")) })
+      mutate(date=as.POSIXct(collectDate, format="%m/%d/%y %H:%M"))})
 
 output$plot3 <- renderPlotly({
 
@@ -650,15 +656,19 @@ if(input$time_scale == 1 & input$uv_freq == 2){
 #By Month, 250 nm
 if(input$time_scale == 2 & input$uv_freq == 1){ 
   q <- q + ylab('UV Absorbance at 254 nm') +
-    geom_point(aes(x = month(date, label=TRUE), y=uva_250, color=site, shape = as.factor(year(date))))+
-    labs(shape = "Year Sampled")
+    geom_boxplot(aes(x = month(date, label=TRUE), y=uva_250, color=site))
 }
+
+## Alternate Instructions for month scatterplot
+# geom_point(aes(x = month(date, label=TRUE), y=uva_250, color=site, shape = as.factor(year(date))))+
+# labs(shape = "Year Sampled")
 
 #By Month, 280 nm 
 if(input$time_scale == 2 & input$uv_freq == 2){ 
   q <- q + ylab('UV Absorbance at 280 nm') +
-    geom_point(aes(x = month(date, label=TRUE), y=uva_280, color=site, shape = as.factor(year(date))))+
-    labs(shape = "Year Sampled")
+    geom_boxplot(aes(x = month(date, label=TRUE), y=uva_280, color=site))
+    # geom_point(aes(x = month(date, label=TRUE), y=uva_280, color=site, shape = as.factor(year(date))))+
+    # labs(shape = "Year Sampled")
 }
 
 # #Month vs Year
