@@ -1,0 +1,7 @@
+sliderInput("sliderdate",
+            label = "Choose date and time:",
+            min = as.POSIXct("2020-03-24 10:23", "%Y-%m-%d %H:%M"),
+            max = as.POSIXct("2020-12-30 10:23", "%Y-%m-%d %H:%M"),
+            value=c(as.POSIXct("2020-03-24 10:23"),
+                    as.POSIXct("2020-12-30 10:23")),
+            timeFormat="%Y-%m-%d %H:%M"),

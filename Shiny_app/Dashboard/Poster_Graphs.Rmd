@@ -1,0 +1,294 @@
+---
+title: "poster_graph"
+author: "Rija Masroor"
+date: "2022-07-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(doBy)
+library(ggplot2)
+library(ggpubr) #to display regression analysis
+library(leaflet) #interactive maps
+library(lubridate)
+library(nlme)
+library(plotly)
+# library(plyr)
+library(rgdal) #needed for read as OGR
+library(readxl)
+library(reshape2)
+library(scales)
+library(sf) #mapping
+library(shiny)
+library(shinydashboard)
+library(shinyTime)
+library(shinyWidgets)
+library(sp) #mapping
+library(stringr)
+library(tidyverse)
+library(viridis)
+
+##arrange df vars by position
+##'vars' must be a named vector, e.g. c("var.name"=1)
+arrange.vars <- function(data, vars){
+  ##stop if not a data.frame (but should work for matrices as well)
+  stopifnot(is.data.frame(data))
+  
+  ##sort out inputs
+  data.nms <- names(data)
+  var.nr <- length(data.nms)
+  var.nms <- names(vars)
+  var.pos <- vars
+  ##sanity checks
+  stopifnot( !any(duplicated(var.nms)), 
+             !any(duplicated(var.pos)) )
+  stopifnot( is.character(var.nms), 
+             is.numeric(var.pos) )
+  stopifnot( all(var.nms %in% data.nms) )
+  stopifnot( all(var.pos > 0), 
+             all(var.pos <= var.nr) )
+  
+  ##prepare output
+  out.vec <- character(var.nr)
+  out.vec[var.pos] <- var.nms
+  out.vec[-var.pos] <- data.nms[ !(data.nms %in% var.nms) ]
+  stopifnot( length(out.vec)==var.nr )
+  
+  ##re-arrange vars by position
+  data <- data[ , out.vec]
+  return(data)
+}
+
+ggplotRegression <- function (fit) {
+  
+  require(ggplot2)
+  
+  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
+    geom_point() +
+    stat_smooth(method = "lm", col = "red") +
+    labs(title = paste("Adj R2 = ",signif(summary(fit)$adj.r.squared, 5),
+                       "Intercept =",signif(fit$coef[[1]],5 ),
+                       " Slope =",signif(fit$coef[[2]], 5),
+                       " P =",signif(summary(fit)$coef[2,4], 5)))
+}
+
+
+ #### Map Processing ####
+# options(stringsAsFactors=F)
+# neonDomains<-readOGR(".","NEON_Domains")
+ 
+
+
+
+ #### Macro Trends Processing ####
+neon_sample<-read.csv("neon_absorbance_grab_samples.csv")
+neon_site<-read.csv("NEON_Field_Site_Metadata.csv", 
+                    header=T, 
+                    na.strings=c("","NA"))
+
+
+
+
+
+neon_site$site<-neon_site$field_site_id
+
+
+neon_sample_meta<-merge(neon_sample,neon_site,by="site",all.x=TRUE)
+neon_sample_na<-subset(neon_sample,!is.na(uva_250))
+neon_sample_avg<-summaryBy(uva_250+uva_280~site,neon_sample_na,FUN=c(mean,sd))
+
+
+neon_sample_meta_avg<-merge(neon_sample_avg,neon_site,by="site",all.x=TRUE)
+
+
+
+uv_draft <- unlist(list(colnames(neon_sample_avg)))
+uv_type <- uv_draft[ - c(1, 4, 5)]
+
+# uv_variables <- neon_sample_meta_avg %>%
+#   select(uva_250.mean, uva_280.mean)
+
+site_variables <- unlist(list(colnames(neon_site)))
+numeric_variables <- site_variables[- c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,22,23,26,27,28,29,30,31,33,34,35,36,37,38,39,40,41,42,43,44,45,46)]
+color_variables <- site_variables[- c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,22,23,26,27,28,29,30,31,33,34,35,36,37,38,39,40,41,42,43,44,45,46)]
+
+# Creates new dataset with every sample's data merged with site data
+neon_samples_all <- merge(neon_sample,neon_site,by="site",all.x=TRUE)
+
+ ####Individual Sites Processing ####
+
+site_list_unique <- unlist(unique(neon_sample$site))
+
+```
+
+
+
+
+
+
+```{r}
+  p <- ggplot(data = neon_sample_meta_avg,
+              aes(x=field_mean_annual_precipitation_mm, y=uva_250.mean)) +
+    theme_bw() +
+    geom_point(size = 3, aes(text = paste("site:", site)))+
+    scale_x_log10() + scale_y_log10() +
+  
+    geom_smooth(method = "lm", col = "black") +
+    stat_compare_means(method = "anova") +
+    labs(title = paste("Adj R2 = ",signif(summary(uva_lm)$adj.r.squared, 2),
+                       " Intercept =",signif(uva_lm$coef[[1]], 2),
+                       " Slope =",signif(uva_lm$coef[[2]], 2),
+                       " P =",signif(summary(uva_lm)$coef[2,4], 2))) +
+
+  # Everything below now considers the figure as a plotly rather than a ggplot object:
+  
+  pplot <- ggplotly(p)
+  
+  pplot
+
+
+```
+
+
+
+
+```{r} 
+
+#log 10 stats of precipitation 
+  precip_lm <- lm(log10(field_mean_annual_precipitation_mm)~log10(uva_250.mean), neon_sample_meta_avg)
+```
+
+
+```{r} 
+#log 10 plot of precipitation
+ggplot(neon_sample_meta_avg,aes(field_mean_annual_precipitation_mm,uva_250.mean))+
+geom_point(size=2)+
+theme_bw()+
+scale_x_log10()+ xlab("log 10 (Mean Annual Precipitation in mm)") +
+scale_y_log10()+ ylab("log 10 (UV Absorbance at 254 nm)") +
+geom_smooth(method = lm)+
+labs(title = paste("Adj R2 = ",signif(summary(precip_lm)$adj.r.squared, 2),
+                   " Intercept =",signif(precip_lm$coef[[1]], 2),
+                   " Slope =",signif(precip_lm$coef[[2]], 2),
+                   " P =",signif(summary(precip_lm)$coef[2,4], 2))) 
+
+
+```
+
+
+
+```{r} 
+
+#log 10 stats of field_latitude
+  field_latitude_lm <- lm(log10(field_latitude)~log10(uva_250.mean), neon_sample_meta_avg)
+```
+
+
+```{r} 
+#log 10 plot of field_latitude
+ggplot(neon_sample_meta_avg,aes(field_latitude,uva_250.mean))+
+geom_point(size=2)+
+theme_bw()+
+scale_x_log10()+ xlab("log 10 (Latitude)") +
+scale_y_log10()+ ylab("log 10 (UV Absorbance at 254 nm)") +
+geom_smooth(method = lm)+
+labs(title = paste("Adj R2 = ",signif(summary(field_latitude_lm)$adj.r.squared, 2),
+                   " Intercept =",signif(field_latitude_lm$coef[[1]], 2),
+                   " Slope =",signif(field_latitude_lm$coef[[2]], 2),
+                   " P =",signif(summary(field_latitude_lm)$coef[2,4], 2))) 
+
+
+```
+
+
+
+
+```{r} 
+
+#log 10 stats of field_mean_annual_temperature_C 
+  field_mean_annual_temperature_C_lm <- lm(log10(field_mean_annual_temperature_C)~log10(uva_250.mean), neon_sample_meta_avg)
+```
+
+
+```{r} 
+#log 10 plot of field_mean_annual_temperature_C
+ggplot(neon_sample_meta_avg,aes(field_mean_annual_temperature_C,uva_250.mean))+
+geom_point(size=6)+
+scale_color_viridis()+
+scale_x_log10()+ xlab("log 10 (Mean Annual Temperature (°C))") +
+scale_y_log10()+ ylab("log 10 (UV abosrbance at 254 nm)") +
+geom_smooth(method = lm)+
+labs(title = paste("Adj R2 = ",signif(summary(field_mean_annual_temperature_C_lm)$adj.r.squared, 2),
+                   " Intercept =",signif(field_mean_annual_temperature_C_lm$coef[[1]], 2),
+                   " Slope =",signif(field_mean_annual_temperature_C_lm$coef[[2]], 2),
+                   " P =",signif(summary(field_mean_annual_temperature_C_lm)$coef[2,4], 2))) 
+
+
+```
+
+
+
+
+
+```{r}
+#log 10 stats of field_mean_elevation_m
+  field_mean_elevation_m_lm <- lm(log10(field_mean_elevation_m)~log10(uva_250.mean), neon_sample_meta_avg)
+```
+
+```{r}
+#log 10 plot of field_mean_elevation_m
+ggplot(neon_sample_meta_avg,aes(field_mean_elevation_m,uva_250.mean))+
+geom_point(size=6)+
+scale_color_viridis()+
+scale_x_log10()+ xlab("log 10 (Mean Elevation (m))") +
+scale_y_log10()+ ylab("log 10 (UV abosrbance at 254 nm)") +
+geom_smooth(method = lm)+
+labs(title = paste("Adj R2 = ",signif(summary(field_mean_elevation_m_lm)$adj.r.squared, 2),
+                   " Intercept =",signif(field_mean_elevation_m_lm$coef[[1]], 2),
+                   " Slope =",signif(field_mean_elevation_m_lm$coef[[2]], 2),
+                   " P =",signif(summary(field_mean_elevation_m_lm)$coef[2,4], 2))) 
+
+```
+
+```{r}
+  neon_sample <- neon_sample %>% mutate(date=as.POSIXct(collectDate, format="%m/%d/%y %H:%M"))
+ 
+
+
+ggplot(data = neon_sample)+
+theme_bw()+
+xlab('Month') +
+ylab('log 10(UV Absorbance at 254 nm)') +
+geom_boxplot(aes(x = month(date, label=TRUE), y=log10(uva_250), color=month(date, label=TRUE)))+
+  theme(legend.position = "none")
+
+
+```
+
+
+
+```{r}
+```
+
+```{r}
+  neon_sample <- neon_sample %>% mutate(date=as.POSIXct(collectDate, format="%m/%d/%y %H:%M"))
+ 
+
+
+ggplot(data = neon_sample)+
+theme_bw()+
+xlab('Month') +
+ylab('log 10(UV Absorbance at 254 nm)') +
+geom_boxplot(aes(x = month(date, label=TRUE), y=log10(uva_250), color=month(date, label=TRUE)))+
+  theme(legend.position = "none")
+
+ylab('UV Absorbance at 254 nm') +
+    geom_point(aes(x = month(date, label=TRUE), y=uva_250, color=site, shape = as.factor(year(date))))+
+    labs(shape = "Year Sampled")
+```
+```
+
