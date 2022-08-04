@@ -1,12 +1,11 @@
+#import libraries
 library(doBy)
-# library(fontawesome) #create icons for the shiny tabs
 library(ggplot2)
 library(ggpubr) #to display regression analysis
 library(leaflet) #interactive maps
 library(lubridate)
 library(nlme)
 library(plotly)
-# library(plyr)
 library(rgdal) #needed for read as OGR
 library(readxl)
 library(reshape2)
@@ -65,20 +64,17 @@ ggplotRegression <- function (fit) {
                        " P =",signif(summary(fit)$coef[2,4], 5)))
 }
 
-
- #### Map Processing ####
-# options(stringsAsFactors=F)
-# neonDomains<-readOGR(".","NEON_Domains")
-
-
-
-
  #### Macro Trends Processing ####
+
+# Reads the sample data.
 neon_sample<-read.csv("neon_absorbance_grab_samples.csv")
+
+# Reads the site information, making any missing data "NA".
 neon_site<-read.csv("NEON_Field_Site_Metadata.csv",
                     header=T,
                     na.strings=c("","NA"))
 
+# Renames column names to make them more readable.
 neon_site <- neon_site %>%
   rename(`Domain ID` = field_domain_id) %>%
   # rename(Site = field_site_id) %>%
@@ -125,46 +121,26 @@ neon_site <- neon_site %>%
   rename(`Number of Tower Levels`= field_number_tower_levels)
 
 
-
-
-# names(neon_site)[3] <- 'Name'
-# names(neon_site)[4] <- 'Type'
-# names(neon_site)[5] <- 'Subtype'
-# names(neon_site)[12] <- 'Latitude'
-# names(neon_site)[13] <- 'Longitude'
-# names(neon_site)[19] <- 'State'
-# names(neon_site)[21] <- 'Elevation (m)'
-# names(neon_site)[24] <- 'Temperature (°C)'
-# names(neon_site)[25] <- 'Precipitation (mm)'
-# names(neon_site)[32] <- 'Watershed Size (km2)'
-
-
-
-
-
 neon_site$site<-neon_site$field_site_id
 
 
 neon_sample_meta<-merge(neon_sample,neon_site,by="site",all.x=TRUE)
 neon_sample_na<-subset(neon_sample,!is.na(uva_250))
 neon_sample_avg<-summaryBy(uva_250+uva_280~site,neon_sample_na,FUN=c(mean,sd))
-#TRY
-# neon_sample_avg <- neon_sample_avg %>%
-#   rename(`UV Absorbance at 254 nm` = uva_250.mean) %>%
-#   rename(`UV Absorbance at 280 nm` = uva_280.mean)
 
 
 neon_sample_meta_avg<-merge(neon_sample_avg,neon_site,by="site",all.x=TRUE)
 
 
-
+# Creates a list using column names in the averaged data. 
 uv_draft <- unlist(list(colnames(neon_sample_avg)))
+
+# Creates a list with only uva_250.mean and uva_280.mean.
+# This is used to create a selector menu in macro trends.
 uv_type <- uv_draft[ - c(1, 4, 5)]
 
-
-# uv_variables <- neon_sample_meta_avg %>%
-#   select(uva_250.mean, uva_280.mean)
-
+# Creates a list with all the sites for which we have data.
+# This is used to create a selector menu in In-depth.
 site_variables <- unlist(list(colnames(neon_site)))
 numeric_variables <- site_variables[- c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,22,23,26,27,28,29,30,31,33,34,35,36,37,38,39,40,41,42,43,44,45,46)]
 color_variables <- site_variables[- c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,22,23,26,27,28,29,30,31,33,34,35,36,37,38,39,40,41,42,43,44,45,46)]
@@ -172,7 +148,7 @@ color_variables <- site_variables[- c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,
 # Creates new dataset with every sample's data merged with site data
 neon_samples_all <- merge(neon_sample,neon_site,by="site",all.x=TRUE)
 
- ####Individual Sites Processing ####
+ ####In-depth Processing ####
 
 site_list_unique <- unlist(unique(neon_sample$site))
 
@@ -192,14 +168,20 @@ cram_melt<-subset(cram_melt,wavelength>=200)
 
 
 
-#### Sites Processing ####
+#### Site Info Processing ####
 
+# Creates a column in Site Info that indicates whether or not data is 
+# available for a specific site.
 neon_site <- neon_site %>%
   mutate(
     Data_Availability = if_else(
       neon_site$field_site_id%in% site_list_unique, "Yes", "No"
     ))
 neon_site <- arrange.vars(neon_site, c("Data_Availability"=3))
+
+neon_site <- neon_site %>%
+  rename(`Data Availability` = Data_Availability)
+  
 
 
 
@@ -240,7 +222,6 @@ dashboardBody(
             
             box(status = "primary", width = 12,
                 fluidRow(
-                  #top right box
                   column(width = 12, 
                          
                          p(tags$img(src="thesis.PNG", width = "40%", height = "60%", style = "float:left; display: block; margin-left: auto; margin-right: 30px;")),
@@ -256,20 +237,18 @@ dashboardBody(
                          p("Use the side panel on the left of the page to navigate to each section. Each section provides different information or data visualization options. 
                       More specific instructions may be found within each section.")))),
             
-            #bottom left box  
             box(status = "primary", width = 12, 
                 h3("How to use the DOM Explorer?", align = "center"),
                 
                 p("We have examined the controls of DOM composition in two ways:"),
             
-                p(strong(("Analysis of existing data from the National Ecological Observatory Network (NEON)."))),
+                p(strong(("Analysis of existing data from the National Ecological Observatory Network (NEON)"))),
                 p("- Macro Trends: Observe trends in data across the United States."),
-                p("- Individual Sites: Choose a site (or sites) and track changes over time."),
-                p("- Time Frame: Choose a site and time frame to observe individual data points."),
+                p("- In-depth: Choose a site (or sites) and track changes over time."),
+
+                p(strong(("Field data collection at novel sites"))),
+                p("Stay tuned for upcoming developments!")),
             
-                p(strong(("Field data collection at novel sites.")))),
-            
-            #bottom right box  
             box(status = "primary", width = 12, 
                 h3("Contributors", align = "center"), 
                 
@@ -279,11 +258,11 @@ dashboardBody(
                   tags$a(href="https://twitter.com/heili_lowman", icon("twitter")), tags$a(href="https://github.com/hlowman", icon("github"))),
                 
                 
-                p(align = "center", a(href = "https://joannarb.weebly.com/", 'Dr. Joanna Blaszczak'),", University of Nevada, Reno", 
-                  tags$a(href="https://twitter.com/jrblasz", icon("twitter"))),
+                p(align = "center", a(href = "https://blaszczaklab.weebly.com/", 'Dr. Joanna Blaszczak'),", University of Nevada, Reno", 
+                  tags$a(href="https://twitter.com/jrblasz", icon("twitter")), tags$a(href="https://github.com/jrblaszczak", icon("github"))),
                 
                 
-                p(align = "center", a(href = "https://jakehosen.github.io/", 'Dr. Jake Hosen'),", Purdue University ", 
+                p(align = "center", a(href = "http://ecosystemscience.io/", 'Dr. Jake Hosen'),", Purdue University ", 
                   tags$a(href="https://twitter.com/jakehosen?lang=en", icon("twitter")), tags$a(href="https://github.com/jakehosen/neon_suna", icon("github"))),
                 
                 p(align = "center", "Dr. Tingyou Hou, Purdue University")),
@@ -292,8 +271,7 @@ dashboardBody(
             #Logos with links to organizations
             box(status = "primary", width = 12, align = "center",  
                 splitLayout(align = "center", 
-                            tags$a(href="https://www.neonscience.org/", tags$img(src="neon_logo.png", width = "100%", height = "100%")),
-                            tags$a(href="https://www.sfei.org/", tags$img(src="sfei.png", width = "100%", height = "100%")))),
+                            tags$a(href="https://www.neonscience.org/", tags$img(src="neon_logo.png", width = "30%", height = "30%", align = "center")))),
     ),
     
     #### Map UI #####
@@ -326,7 +304,6 @@ dashboardBody(
                         selected = 1),
             selectInput("yvar", label = h4("ultraviolet frequency"),
                         choices = uv_type,
-                        # choices = colnames(uv_variables),
                         selected = 1),
             selectInput("colorby", label = h4("color by"),
                         choices = color_variables,
@@ -344,7 +321,7 @@ dashboardBody(
     ),  #closes tabItem 2
 
     
-    #### Individual Sites UI #####
+    #### In-depth UI #####
     tabItem(tabName = "Tab3",
             
             #Header     
@@ -353,7 +330,7 @@ dashboardBody(
                254 nm or 280 nm for one sites or for multiple sites simultaneously.
                You can also choose whether to observe trends by year or by month. 
                Choose 'Year' to see trajectories over time. Choose 'Month'
-               to see seasonal variation in DOM composition.", align = 'left'),
+               to discover seasonal variation in DOM composition.", align = 'left'),
             br(),
             
             box(title = "Data Selection", status = "primary", width = 12, collapsible = TRUE,
@@ -391,16 +368,13 @@ dashboardBody(
               ))
             ),#closes box titled "Data Selection"
             
-
-
-            # fluidRow(
-            #   splitLayout(cellWidths = c("50%", "50%"), plotlyOutput("uva250"), plotlyOutput("uva280"))),
-                      
             mainPanel(plotlyOutput("plot3")) #closes main panel
 
     ),  #closes tabItem 3   
     
     #### Tab 4 UI #####
+    # This tab is merely a prototype. It is not displayed in this version of 
+    # the shiny app but may be helpful for future development.
     # tabItem(tabName = "Tab4",
     #         
     #         #Header     
@@ -426,7 +400,7 @@ dashboardBody(
     # ),  #closes tabItem 4    
     
 
-    #### Sites UI #####
+    #### Site Info UI #####
     tabItem(tabName = "Sites",
             
             #Header     
@@ -448,8 +422,10 @@ dashboardBody(
             
             box(status = "primary", width = 12, 
                 strong(p("DOM: Dissolved Organic Matter")),
-                p("Dissolved Organic Matter 
-                  Particles are small, usually under 0.45 μm.")),
+                p("Dissolved organic matter is defined as the fraction of 
+                  organic matter in water with particle size under 0.45 μm. 
+                  The small particle size means it can dissolve. It originates from 
+                  leaves, soil, algae and similar sources.")),
             
             box(status = "primary", width = 12, 
                 strong(p("POM: Particulate Organic Matter")),
@@ -472,7 +448,9 @@ dashboardBody(
                   estimating the dissolved aromatic carbon content in aquatic systems." (Weishaar et al.)')),
             
             box(status = "primary", width = 12, 
-                strong(p("UVA 280: Ultraviolet Absorption at 280 nm"))),
+                strong(p("UVA 280: Ultraviolet Absorption at 280 nm")),
+                p("Specific UV absorbance (SUVA) determined at 280 nm is another wavelength
+                  commonly used to determine UV absorbance.")),
             
     ),  #closes Glossary
     
@@ -497,10 +475,10 @@ dashboardBody(
             
             box(status = "primary", width = 12, 
                 strong(p("Glossary", align = "center")),
-                p(a(href="Weishaar, J. L.; Aiken, G. R.; Bergamaschi, B. A.; Fram, 
-                    M. S.; Fujii, R.; Mopper, K. Evaluation of Specific Ultraviolet Absorbance 
+                p(a(href="https://pubs.acs.org/doi/10.1021/es030360x","Weishaar, J. L.; Aiken, G. R.; Bergamaschi, B. A.; Fram,
+                    M. S.; Fujii, R.; Mopper, K. Evaluation of Specific Ultraviolet Absorbance
                     as an Indicator of the Chemical Composition and Reactivity of Dissolved
-                    Organic Carbon. Environ. Sci. Technol. 2003, 37 (20), 4702–4708. 
+                    Organic Carbon. Environ. Sci. Technol. 2003, 37 (20), 4702–4708.
                     https://doi.org/10.1021/es030360x."))),
 
             
@@ -520,13 +498,7 @@ server <- function (input, output){
   
   #### Map Server ####
   
-  # output$map <- renderLeaflet({
-  #   # Use leaflet() here, and only include aspects of the map that
-  #   # won't need to change dynamically (at least, not unless the
-  #   # entire map is being torn down and recreated).
-  #   leaflet(quakes) %>% addTiles() %>%
-  #     fitBounds(~min(long), ~min(lat), ~max(long), ~max(lat))
-  # })
+  # Map does not have any reactive features.
   
   #### Macro Trends Server ####
 
@@ -627,7 +599,7 @@ output$plot2 <- renderPlotly({
 })
 
 
-  #### Individual Sites Server####
+  #### In-depth Server####
   
   #Extract site data
   neon_subset <- reactive({
