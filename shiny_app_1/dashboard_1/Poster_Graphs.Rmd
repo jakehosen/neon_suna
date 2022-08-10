@@ -131,18 +131,14 @@ site_list_unique <- unlist(unique(neon_sample$site))
 
 
 ```{r}
-  p <- ggplot(data = neon_sample_meta_avg,
-              aes(x=field_mean_annual_precipitation_mm, y=uva_250.mean)) +
+  p <- ggplot(data = neon_sample_meta_avg,aes(x=field_mean_annual_precipitation_mm, y=uva_250.mean)) +
     theme_bw() +
     geom_point(size = 3, aes(text = paste("site:", site)))+
     scale_x_log10() + scale_y_log10() +
   
     geom_smooth(method = "lm", col = "black") +
     stat_compare_means(method = "anova") +
-    labs(title = paste("Adj R2 = ",signif(summary(uva_lm)$adj.r.squared, 2),
-                       " Intercept =",signif(uva_lm$coef[[1]], 2),
-                       " Slope =",signif(uva_lm$coef[[2]], 2),
-                       " P =",signif(summary(uva_lm)$coef[2,4], 2))) +
+    labs(title = paste("Adj R2 = ",signif(summary(uva_lm)$adj.r.squared, 2), " Intercept =",signif(uva_lm$coef[[1]], 2)," Slope =",signif(uva_lm$coef[[2]], 2)," P =",signif(summary(uva_lm)$coef[2,4], 2)))
 
   # Everything below now considers the figure as a plotly rather than a ggplot object:
   

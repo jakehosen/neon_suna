@@ -277,7 +277,7 @@ dashboardBody(
     #### Map UI #####
     tabItem(tabName = "Map",
             
-            p(tags$img(src="static_map.PNG", width = "100%")),
+            p(tags$img(src="static_map.PNG", width = "95%", height = "95%")),
             
 
             # plot(neonDomains),
