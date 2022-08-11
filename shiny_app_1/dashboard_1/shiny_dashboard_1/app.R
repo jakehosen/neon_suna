@@ -20,7 +20,7 @@ library(stringr)
 library(tidyverse)
 library(viridis)
 
-##arrange df vars by position
+##arrange df variables by position
 ##'vars' must be a named vector, e.g. c("var.name"=1)
 arrange.vars <- function(data, vars){
   ##stop if not a data.frame (but should work for matrices as well)
@@ -51,18 +51,6 @@ arrange.vars <- function(data, vars){
   return(data)
 }
 
-ggplotRegression <- function (fit) {
-
-  require(ggplot2)
-
-  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) +
-    geom_point() +
-    stat_smooth(method = "lm", col = "red") +
-    labs(title = paste("Adj R2 = ",signif(summary(fit)$adj.r.squared, 5),
-                       "Intercept =",signif(fit$coef[[1]],5 ),
-                       " Slope =",signif(fit$coef[[2]], 5),
-                       " P =",signif(summary(fit)$coef[2,4], 5)))
-}
 
  #### Macro Trends Processing ####
 
@@ -120,8 +108,9 @@ neon_site <- neon_site %>%
   rename(`Phenocams`= field_phenocams) %>%
   rename(`Number of Tower Levels`= field_number_tower_levels)
 
-
+# Creates a new column 'site' at the end of the dataframe.
 neon_site$site<-neon_site$field_site_id
+
 
 
 neon_sample_meta<-merge(neon_sample,neon_site,by="site",all.x=TRUE)
@@ -189,7 +178,7 @@ neon_site <- neon_site %>%
  #### UI ####
 
 ui <- dashboardPage(
-  dashboardHeader(title = "My Dashboard"),
+  dashboardHeader(title = "DOM Explorer!"),
   
   dashboardSidebar(width = 175,
   
@@ -228,25 +217,27 @@ dashboardBody(
                          
                          h3("What is the DOM Explorer?", align = "center"), 
                          
-                         strong(p("This database is a repository for data collected by the Ecological Observatory Network (NEON).")), 
+                         strong(p("You can see trends in dissolved organic matter (DOM) across the United States on this website (data courtesy of the National Ecological Observatory Network).")), 
                          
-                         p("Dissolved organic matter (DOM) in freshwater bodies such as rivers and streams is an integral part of the global carbon cycle. Flowing freshwater bodies serve not just as passive carriers of terrestrial material, but also as active agents for the transformation of carbon-containing compounds (Cole et al., 2007). The fate of DOM is governed by several processes, including photosynthesis, photo-oxidation, respiration, internal primary production, secondary production and heterotrophic consumption. Some of these are catabolic, while others are anabolic, which leads to shifts in DOM composition. The rate of these processes is determined by seasonal factors (Cottrell et al., 2013) such as temperature and precipitation, geographical factors including altitude (Gutiérrez-Girón et al., 2015) and canopy cover (Mellec et al., 2010) as well as unusual weather events such as drought (Hosen et al., 2019)."),
+                         p("DOM in freshwater bodies such as rivers and streams is an integral part of the global carbon cycle. Flowing freshwater bodies serve not just as passive carriers of terrestrial material, but also as active agents for the transformation of carbon-containing compounds (Cole et al., 2007). The fate of DOM is governed by several processes, including photosynthesis, photo-oxidation, respiration, internal primary production, secondary production and heterotrophic consumption (Fig. 1). Some of these are catabolic, while others are anabolic, which leads to shifts in DOM composition. The rate of these processes is determined by seasonal factors (Cottrell et al., 2013) such as temperature and precipitation, geographical factors including altitude (Gutiérrez-Girón et al., 2015) and canopy cover (Mellec et al., 2010) as well as unusual weather events such as drought (Hosen et al., 2019)."),
                          
-                         p("These factors intersect at scales ranging from local to continental to create unique DOM profiles for freshwater bodies. Macrosystems ecology is “the study of diverse ecological phenomena at the scale of regions to continents and their interactions with phenomena at other scales” (Heffernan et al., 2014). Through a macrosystems approach, we aim to study macroscale feedback and cross-scale interaction in freshwater bodies in the continental United States. "),
-                         
-                         p("Use the side panel on the left of the page to navigate to each section. Each section provides different information or data visualization options. 
-                      More specific instructions may be found within each section.")))),
-            
+                         p("These factors intersect at scales ranging from local to continental to create unique DOM profiles for freshwater bodies. Macrosystems ecology is “the study of diverse ecological phenomena at the scale of regions to continents and their interactions with phenomena at other scales” (Heffernan et al., 2014). Through a macrosystems approach, we aim to study macroscale feedback and cross-scale interaction in freshwater bodies in the continental United States.")))),
+
             box(status = "primary", width = 12, 
                 h3("How to use the DOM Explorer?", align = "center"),
                 
+                strong(p("Use the side panel on the left of the page to navigate to 
+                         each section. Each section provides different information 
+                         or data visualization options. 
+                      More specific instructions may be found within each section.")),
+                
                 p("We have examined the controls of DOM composition in two ways:"),
             
-                p(strong(("Analysis of existing data from the National Ecological Observatory Network (NEON)"))),
+                p(("Analysis of existing data from the National Ecological Observatory Network (NEON)")),
                 p("- Macro Trends: Observe trends in data across the United States."),
                 p("- In-depth: Choose a site (or sites) and track changes over time."),
 
-                p(strong(("Field data collection at novel sites"))),
+                p(("Field data collection at novel sites")),
                 p("Stay tuned for upcoming developments!")),
             
             box(status = "primary", width = 12, 
@@ -276,14 +267,12 @@ dashboardBody(
     
     #### Map UI #####
     tabItem(tabName = "Map",
+            h2("Map", align = 'center'),
+            h4("NEON maintains a network of water nitrate (SUNA V2) sensors at 34 aquatic sites across the United States.", align='center'),
             
             p(tags$img(src="static_map.PNG", width = "100%")),
-            
-
-            # plot(neonDomains),
-            # points(neonSites$field_latitude~neonSites$field_longitude,
-            #        pch=20)
-            
+            p(a(href = "https://www.neonscience.org/sites/default/files/FieldSitesMap-33x18-PosterwIndex.pdf", 'NEON (National Ecological Observatory Network). Field Sites Map - Poster w Site Index. https://www.neonscience.org/sites/default/files/FieldSitesMap-33x18-Pos… (accessed 28 July 2020).')),
+    
     ),  #closes Map  
     
     
@@ -296,16 +285,22 @@ dashboardBody(
                Higher absorbance at 254 nm and 280 nm indicates the presence of higher levels 
                of DOM, including aromatic compounds, in water. Select a variable for the x-axis 
                and a wavelength of ultraviolet light to display a specific trend. Use the 'color by' 
-               option to see how two variables intearct."),
+               option to see how two variables interact."),
+            h4("Points displayed represent average values for a given site (n=34). Linear regressions
+               are calculated using raw sample data from all sites (n=)."),
+            h4("Hover over the top right of the plot and click the camera icon to 
+               export the plot you have constructed."),
             br(),
             sidebarPanel(
-            selectInput("xvar", label = h4("x variable"),
+            selectInput("xvar", label = "X-variable:",
                         choices = numeric_variables,
                         selected = 1),
-            selectInput("yvar", label = h4("ultraviolet frequency"),
-                        choices = uv_type,
-                        selected = 1),
-            selectInput("colorby", label = h4("color by"),
+                        selectInput("yvar", "Ultraviolet Frequency:",
+                                    c("UV Absorbance at 254 nm" = "uva_250.mean",
+                                      "UV Absorbance at 280 nm" = "uva_280.mean"
+                                      )),
+                        
+            selectInput("colorby", label = "Color by:",
                         choices = color_variables,
                         selected = 2),
             checkboxInput("checkboxline", label = "Plot Linear Regression", value = FALSE),
@@ -328,16 +323,17 @@ dashboardBody(
             h2("Individual Sites", align = 'center'),
             h4("On this tab, you can look at trends in ultraviolet absorbance at 
                254 nm or 280 nm for one sites or for multiple sites simultaneously.
-               You can also choose whether to observe trends by year or by month. 
-               Choose 'Year' to see trajectories over time. Choose 'Month'
-               to discover seasonal variation in DOM composition.", align = 'left'),
+               At present, you are viewing trends by 'Year' to observe trends over time. 
+               You can choose 'Month'to discover seasonal variation in DOM composition.
+               You can also choose 'Year with time series' to see trajectories over time with a 
+               with a time series.", align = 'left'),
+            h4("Hover over the top right of the plot and click the camera icon to 
+               export the plot you have constructed."),
+            
             br(),
             
             box(title = "Data Selection", status = "primary", width = 12, collapsible = TRUE,
                 
-                shinyjs::useShinyjs(), # requires package for "reset" button, DO NOT DELETE - make sure to add any new widget to the reset_input in the server
-                id = "exploration", # adds ID for resetting filters
-            
             fluidRow(
               tabBox(width = 12,
                      tabPanel("Site(s)",
@@ -348,27 +344,29 @@ dashboardBody(
                                                           selected = "ARIK",
                                                           options = list(`actions-box` = TRUE),
                                                           multiple = TRUE)),
-
-
-
                      )),
+                     
                      tabPanel("UV frequency",
                               fluidRow(column(width = 4,
-                                              selectInput("uv_freq", label = h4("ultraviolet frequency"),
+                                              selectInput("uv_freq", label = "Ultraviolet frequency:",
                                                           choices = list("UV Absorbance at 254 nm" = 1, "UV Absorbance at 280 nm" = 2),
                                                           selected = 1)),
                      )),
                      tabPanel("Time Scale",
                               fluidRow(column(width = 4,
-                                              selectInput("time_scale", label = h4("Select time scale"), 
-                                                          choices = list("Year" = 1, "Month" = 2), 
-                                                          selected = 1)),
+                                              selectInput("time_scale", label = "Select time scale:", 
+                                                          choices = list("Month" = 1, "Year" = 2, "Year as time series" = 3), #add year with trendline
+                                                          selected = 2)),
                               
                     )),
               ))
             ),#closes box titled "Data Selection"
             
-            mainPanel(plotlyOutput("plot3")) #closes main panel
+            # mainPanel(fluidRow(plotlyOutput("plot3"), align='center')) #closes main panel #align center
+            
+            fluidPage(
+              mainPanel(
+                fluidRow(plotlyOutput("plot3"), align = "center"), width = 12))
 
     ),  #closes tabItem 3   
     
@@ -401,10 +399,17 @@ dashboardBody(
     
 
     #### Site Info UI #####
+
+    
     tabItem(tabName = "Sites",
             
             #Header     
             h1("NEON Sites", align = 'center'),
+            h4("You will find below a list of all sites at which NEON currently collects
+               data. Please note both aquatic and terrestrial sites are presented here.
+               However, in the remainder of this application, only data from aquatic sites is 
+               displayed. If you would like to see which sites exactly are present in this 
+               application, please refer to 'Data Availability.'"),
             
             mainPanel(
               dataTableOutput("Sites_table")
@@ -502,45 +507,6 @@ server <- function (input, output){
   
   #### Macro Trends Server ####
 
-# 
-#   output$plot2 <- renderPlotly({
-#       #linear model
-#       # lmodel<- lm(input$yvar~input$xvar)
-#     
-#       #plot
-#       # p <- ggplot(data = neon_sample_meta_avg, aes_string(x=input$xvar, y=input$yvar)) +
-#     p <- ggplot(data = neon_sample_meta_avg, aes(.data[[input$xvar]], y=.data[[input$yvar]])) +
-#         theme_bw() +
-#         geom_point(size = 3, aes(color = .data[[input$colorby]], text = paste("site:", site)))+
-#         scale_color_viridis()+
-#         theme(legend.position = "bottom") #ig <- fig %>% layout(legend = list(orientation = 'h'))
-#         # coef(lmList(input$yvar~input$xvar , data =neon_sample_meta_avg ))
-#       
-#         # trendline(input$xvar, nput$yvar, model = "line2P", plot = TRUE, linecolor = "red",
-#         #           lty = 1, lwd = 1, summary = TRUE, ePos = "topleft", eDigit = 5,
-#         #           eSize = 1)
-#         
-#         # labs(title = paste("Adj R2 = ",signif(summary(lmodel)$adj.r.squared, 5),
-#         #                    "Intercept =",signif(lmodel$coef[[1]],5 ),
-#         #                    " Slope =",signif(lmodel$coef[[2]], 5),
-#         #                    " P =",signif(summary(lmodel)$coef[2,4], 5)))
-#       
-#     
-#     
-#     if (input$checkboxline == TRUE){
-#       p<-p+ geom_smooth(method = "lm", col = "red")+
-#         stat_compare_means(method = "anova")
-#       }
-# 
-#     if (input$checkboxlog){
-#       p<-p+ scale_x_log10()+scale_y_log10()  #trouble with longitude
-#     }
-#     
-#     ggplotly(p) %>% layout(legend = list(orientation = 'h'))
-#   })
-  
-## Heili's Version ##
-
 # NOTE: THIS IS THE DATASET USED FOR THE LINEAR MODEL. It will include
 # all of the available data, rather than only the site-averaged values.
 
@@ -557,10 +523,10 @@ output$plot2 <- renderPlotly({
   # Creates base plot
   p <- ggplot(data = neon_sample_meta_avg,
               aes(x=.data[[input$xvar]], y=.data[[input$yvar]])) +
-    # theme(legend.position = "bottom") +
     theme_bw() +
     labs(color = paste(strwrap(input$colorby, width = 12), collapse = "\n"))+
-    # labs(color = label_wrap(date, width = 20)) +
+    labs(y = ifelse(input$yvar == 'uva_250.mean', 'UV Absorbance at 254 nm', 'UV Absorbance at 280 nm')) +
+    
     geom_point(size = 3,
                aes(color = .data[[input$colorby]],
                    text = paste("site:", site)))+
@@ -575,12 +541,14 @@ output$plot2 <- renderPlotly({
   # Uses FULL DATASET to calculate linear model results  
   new_dataset <- macro_data()
   
-  uva_lm <- lm(new_dataset[,2] ~ new_dataset[,1])
+  uva_lm <- lm(new_dataset[,2] ~ new_dataset[,1]) 
+  
+  uva_lm_log <- lm(log10(new_dataset[,2]) ~ log10(new_dataset[,1]))
   
   # Adds linear model statistics print outs if box is checked
   # Note, the significant figures have been decreased to 2 in each case
   # to better have everything fit at the top of the plot    
-  if (input$checkboxline == TRUE){
+  if (input$checkboxline == TRUE&& input$checkboxlog == FALSE){
     p <- p + geom_smooth(method = "lm", col = "black") +
       stat_compare_means(method = "anova") +
       labs(title = paste("Adj R2 = ",signif(summary(uva_lm)$adj.r.squared, 2),
@@ -588,6 +556,17 @@ output$plot2 <- renderPlotly({
                          " Slope =",signif(uva_lm$coef[[2]], 2),
                          " P =",signif(summary(uva_lm)$coef[2,4], 2))) +
       theme(text = element_text(size = 10)) 
+  }
+  
+  # Adds another version of the plot and linear model results if data has been log-transformed
+  if (input$checkboxline == TRUE && input$checkboxlog == TRUE){
+    p <- p + geom_smooth(method = "lm", col = "black") +
+      stat_compare_means(method = "anova") +
+      labs(title = paste("Adj R2 = ",signif(summary(uva_lm_log)$adj.r.squared, 2),
+                         " Intercept =",signif(uva_lm_log$coef[[1]], 2),
+                         " Slope =",signif(uva_lm_log$coef[[2]], 2),
+                         " P =",signif(summary(uva_lm_log)$coef[2,4], 2))) +
+      theme(text = element_text(size = 10))
   }
   
   # Everything below now considers the figure as a plotly rather than a ggplot object:
@@ -613,20 +592,8 @@ q <- ggplot(data = neon_subset())+
   theme_bw()+
   xlab('Time')
 
-#By Year, 250 nm
-if(input$time_scale == 1 & input$uv_freq == 1){ 
-  q <- q + ylab('UV Absorbance at 254 nm') +
-    geom_point(aes(x = date, y = uva_250, color = site))
-}
-
-#By Year, 280 nm
-if(input$time_scale == 1 & input$uv_freq == 2){ 
-  q <- q + ylab('UV Absorbance at 280 nm') +
-    geom_point(aes(x = date, y = uva_280, color = site))
-}
-
 #By Month, 250 nm
-if(input$time_scale == 2 & input$uv_freq == 1){ 
+if(input$time_scale == 1 & input$uv_freq == 1){ 
   q <- q + ylab('UV Absorbance at 254 nm') +
     geom_boxplot(aes(x = month(date, label=TRUE), y=uva_250, color=site))
 }
@@ -636,11 +603,39 @@ if(input$time_scale == 2 & input$uv_freq == 1){
 # labs(shape = "Year Sampled")
 
 #By Month, 280 nm 
-if(input$time_scale == 2 & input$uv_freq == 2){ 
+if(input$time_scale == 1 & input$uv_freq == 2){ 
   q <- q + ylab('UV Absorbance at 280 nm') +
     geom_boxplot(aes(x = month(date, label=TRUE), y=uva_280, color=site))
-    # geom_point(aes(x = month(date, label=TRUE), y=uva_280, color=site, shape = as.factor(year(date))))+
-    # labs(shape = "Year Sampled")
+  # geom_point(aes(x = month(date, label=TRUE), y=uva_280, color=site, shape = as.factor(year(date))))+
+  # labs(shape = "Year Sampled")
+}
+
+
+#By Year, 250 nm
+if(input$time_scale == 2 & input$uv_freq == 1){ 
+  q <- q + ylab('UV Absorbance at 254 nm') +
+    geom_point(aes(x = date, y = uva_250, color = site))
+}
+
+#By Year, 280 nm
+if(input$time_scale == 2 & input$uv_freq == 2){ 
+  q <- q + ylab('UV Absorbance at 280 nm') +
+    geom_point(aes(x = date, y = uva_280, color = site))
+}
+
+
+#By Year with trendline, 250 nm
+if(input$time_scale == 3 & input$uv_freq == 1){ 
+  q <- q + ylab('UV Absorbance at 254 nm') +
+    geom_point(aes(x = date, y = uva_250, color = site)) +
+    geom_line(aes(x = date, y = uva_250, color = site))
+}
+
+#By Year with trendline, 280 nm
+if(input$time_scale == 3 & input$uv_freq == 2){ 
+  q <- q + ylab('UV Absorbance at 280 nm') +
+    geom_point(aes(x = date, y = uva_280, color = site))+
+    geom_line(aes(x = date, y = uva_280, color = site))
 }
 
 # #Month vs Year
@@ -692,17 +687,12 @@ qplot
   
   #Extract site attributes
   
-  # place <- reactive({
-  #   neon_site %>% filter(field_site_id==input$multiple_site_select) %>%
-  #     select(field_site_id, field_site_name, field_site_subtype, field_site_state, field_mean_annual_temperature_C, field_mean_annual_precipitation_mm)
-  # })
-  
+
    place <- reactive({
      mylist <-input$multiple_site_select # creates a list
     neon_site %>%
       filter(field_site_id %in% mylist) %>%
       select(!!c(2,3,6,20,22,25,26))
-      # select(field_site_id, field_site_name,field_site_subtype, field_site_state, field_mean_annual_temperature_C, field_mean_annual_precipitation_mm) # selects sites from list
   })
   
   
@@ -710,26 +700,6 @@ qplot
   output$table3 <- renderTable({place()})
 
 
-    
-  # output$plot3 <- renderPlotly({
-  #   yaxis <- input$uv
-  #   ggplot(neon_subset()) +
-  #     geom_point(aes(x = date, y = uva_250))
-    
-  #     
-      # geom_point(aes(y=as.character(yaxis))) #straight horizontal line
-      # geom_point(aes_string(y=as.character(yaxis))) #object 'uva_250.mean' not found
-    
-      # geom_point(aes(y=as.numeric(yaxis))) #no dots show up
-      # geom_point(aes_string(y=as.numeric(yaxis))) #no dots show up, y vs date
-      
-      # geom_point(aes_string(y=input$uv))
-  # })
-    
-    # ggplot(data = neon_subset(), aes(x=date)) + 
-    # geom_point(aes_string(y = input$uv_type)) #need to use aes and aes_string together
-  # }) #closes output$plot
-  
   #### Tab 4 Server ####
  
   # output$value <- renderPrint({ input$date })
