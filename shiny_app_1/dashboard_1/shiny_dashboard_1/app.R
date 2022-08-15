@@ -277,7 +277,7 @@ dashboardBody(
             h2("Map", align = 'center'),
             h4("NEON maintains a network of water nitrate (SUNA V2) sensors at 34 aquatic sites across the United States.", align='center'),
             
-            p(tags$img(src="static_map.PNG", width = "100%")),
+            p(tags$img(src="static_map.PNG", width = "95%", height = "95%")),
             p(a(href = "https://www.neonscience.org/sites/default/files/FieldSitesMap-33x18-PosterwIndex.pdf", 'NEON (National Ecological Observatory Network). Field Sites Map - Poster w Site Index. https://www.neonscience.org/sites/default/files/FieldSitesMap-33x18-Pos… (accessed 28 July 2020).')),
     
     ),  #closes Map  
