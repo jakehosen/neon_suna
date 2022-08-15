@@ -20,7 +20,8 @@ library(stringr)
 library(tidyverse)
 library(viridis)
 
-##arrange df variables by position
+##function to arrange df variables by position
+# https://gist.github.com/arcaravaggi/38d9739380a08464e990427ba5222356
 ##'vars' must be a named vector, e.g. c("var.name"=1)
 arrange.vars <- function(data, vars){
   ##stop if not a data.frame (but should work for matrices as well)
@@ -101,8 +102,11 @@ neon_site <- neon_site %>%
   rename(`USGS Geology Unit`=field_usgs_geology_unit) %>%
   rename(`Megapit Soil Family`= field_megapit_soil_family) %>%
   rename(`Soil Subgroup`= field_soil_subgroup) %>%
-  rename(`Average numvber of green days`= field_avg_number_of_green_days) %>%
-
+  rename(`Average number of green days`= field_avg_number_of_green_days) %>%
+  rename(`Average first greenness increase date` = field_avg_grean_increase_doy) %>%
+  rename(`Average peak green date`= field_avg_green_max_doy) %>% 
+  rename(`Average minimum greenness date`= field_avg_green_min_doy) %>% 
+  rename(`Average first greenness decrease date`= field_avg_green_decrease_doy) %>% 
   rename(`Phenocams`= field_phenocams) %>%
   rename(`Number of Tower Levels`= field_number_tower_levels)
 
@@ -110,12 +114,16 @@ neon_site <- neon_site %>%
 neon_site$site<-neon_site$field_site_id
 
 
-
+# Merges site info with site metadata.
 neon_sample_meta<-merge(neon_sample,neon_site,by="site",all.x=TRUE)
+
+# Removes NAs
 neon_sample_na<-subset(neon_sample,!is.na(uva_250))
+
+# Calculates mean and sd for each site.
 neon_sample_avg<-summaryBy(uva_250+uva_280~site,neon_sample_na,FUN=c(mean,sd))
 
-
+# Merges averaged site info with site metadata.
 neon_sample_meta_avg<-merge(neon_sample_avg,neon_site,by="site",all.x=TRUE)
 
 
@@ -127,7 +135,7 @@ uv_draft <- unlist(list(colnames(neon_sample_avg)))
 uv_type <- uv_draft[ - c(1, 4, 5)]
 
 # Creates a list with all the sites for which we have data.
-# This is used to create a selector menu in In-depth.
+# This is used to create selector menus in In-depth.
 site_variables <- unlist(list(colnames(neon_site)))
 numeric_variables <- site_variables[- c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,22,23,26,27,28,29,30,31,33,34,35,36,37,38,39,40,41,42,43,44,45,46)]
 color_variables <- site_variables[- c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,22,23,26,27,28,29,30,31,33,34,35,36,37,38,39,40,41,42,43,44,45,46)]
@@ -136,23 +144,21 @@ color_variables <- site_variables[- c(1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,
 neon_samples_all <- merge(neon_sample,neon_site,by="site",all.x=TRUE)
 
  ####In-depth Processing ####
-
+# Used for site selection.
 site_list_unique <- unlist(unique(neon_sample$site))
 
  #### Tab 4 Processing ####
-cram_2019_short<-read.csv("SUNA_CRAM_2019_full_short.csv")
-cram_2019_short$dtp<-as.POSIXct(cram_2019_short$dtp,tz="UTC")
-
-cram_2019_keep<-cram_2019_short[,grep("interp_*",names(cram_2019_short))]
-cram_2019_keep$dtp<-cram_2019_short$dtp
-
-cram_melt<-melt(cram_2019_keep,id="dtp")
-
-cram_melt$wavelength<-as.numeric(gsub("interp_","",cram_melt$variable,fixed=TRUE))
-cram_melt<-subset(cram_melt,wavelength>=200)
-
-
-
+## prototype
+# cram_2019_short<-read.csv("SUNA_CRAM_2019_full_short.csv")
+# cram_2019_short$dtp<-as.POSIXct(cram_2019_short$dtp,tz="UTC")
+# 
+# cram_2019_keep<-cram_2019_short[,grep("interp_*",names(cram_2019_short))]
+# cram_2019_keep$dtp<-cram_2019_short$dtp
+# 
+# cram_melt<-melt(cram_2019_keep,id="dtp")
+# 
+# cram_melt$wavelength<-as.numeric(gsub("interp_","",cram_melt$variable,fixed=TRUE))
+# cram_melt<-subset(cram_melt,wavelength>=200)
 
 
 #### Site Info Processing ####
@@ -164,6 +170,8 @@ neon_site <- neon_site %>%
     Data_Availability = if_else(
       neon_site$field_site_id%in% site_list_unique, "Yes", "No"
     ))
+
+# Changes position of Data Avail column
 neon_site <- arrange.vars(neon_site, c("Data_Availability"=3))
 
 # Renames Data Availability column name to make it more readable
@@ -186,7 +194,7 @@ ui <- dashboardPage(
       menuItem("Map", tabName = "Map", icon = icon("map")),
       menuItem("Macro Trends", tabName = "Tab2", icon = icon("globe")),
       menuItem("In-depth", tabName = "Tab3", icon = icon("location")), 
-      # menuItem("Time Frame", tabName = "Tab4", icon = icon("chart-bar")),
+      # menuItem("Time Frame", tabName = "Tab4", icon = icon("chart-bar")), #prototype tab
       menuItem("Site Info", tabName = "Sites", icon = icon("search")),
       menuItem("Glossary", tabName = "Glossary", icon = icon("book")),
       menuItem("References", tabName = "References", icon = icon("table")))
@@ -285,8 +293,8 @@ dashboardBody(
                of DOM, including aromatic compounds, in water. Select a variable for the x-axis 
                and a wavelength of ultraviolet light to display a specific trend. Use the 'color by' 
                option to see how two variables interact."),
-            h4("Points displayed represent average values for a given site (n=34). Linear regressions
-               are calculated using raw sample data from all sites (n=)."),
+            h4("Points displayed represent average values for a given site (n = 34). Linear regressions
+               are calculated using raw sample data from all sites (n = 2895)."),
             h4("Hover over the top right of the plot and click the camera icon to 
                export the plot you have constructed."),
             br(),
@@ -309,7 +317,7 @@ dashboardBody(
             # selector for linear regression
             checkboxInput("checkboxline", label = "Plot Linear Regression", value = FALSE), 
             
-            # selector for log
+            # selector for log transformation of both axes
             checkboxInput("checkboxlog", label = "Log 10", value = FALSE), 
             ), #closes sideBar Panel
             
@@ -372,15 +380,13 @@ dashboardBody(
               ))
             ),#closes box titled "Data Selection"
             
-            # mainPanel(fluidRow(plotlyOutput("plot3"), align='center')) #closes main panel #align center
-            
+            #Generates plot.
             fluidPage(
               mainPanel(
                 fluidRow(plotlyOutput("plot3"), align = "center"), width = 12))
-
     ),  #closes tabItem 3   
     
-    #### Tab 4 UI #####
+    #### Prototype tab UI #####
     # This tab is merely a prototype. It is not displayed in this version of 
     # the shiny app but may be helpful for future development.
     # tabItem(tabName = "Tab4",
@@ -521,11 +527,9 @@ server <- function (input, output){
 # all of the available data, rather than only the site-averaged values.
 
 macro_data <- reactive({
-  
   neon_samples_all %>%
     rename(uva_250.mean = uva_250, uva_280.mean = uva_280) %>% # just to make selection easier
     select(.data[[input$xvar]], .data[[input$yvar]])
-  
 })
 
 output$plot2 <- renderPlotly({
@@ -552,12 +556,13 @@ output$plot2 <- renderPlotly({
   new_dataset <- macro_data()
   
   uva_lm <- lm(new_dataset[,2] ~ new_dataset[,1]) 
-  
   uva_lm_log <- lm(log10(new_dataset[,2]) ~ log10(new_dataset[,1]))
   
   # Adds linear model statistics print outs if box is checked
   # Note, the significant figures have been decreased to 2 in each case
-  # to better have everything fit at the top of the plot    
+  # to better have everything fit at the top of the plot  
+  # https://sejohnston.com/2012/08/09/a-quick-and-easy-function-to-plot-lm-results-in-r/
+
   if (input$checkboxline == TRUE&& input$checkboxlog == FALSE){
     p <- p + geom_smooth(method = "lm", col = "black") +
       stat_compare_means(method = "anova") +
@@ -566,7 +571,7 @@ output$plot2 <- renderPlotly({
                          " Slope =",signif(uva_lm$coef[[2]], 2),
                          " P =",signif(summary(uva_lm)$coef[2,4], 2))) +
       theme(text = element_text(size = 10)) 
-  }
+  } #closes if checkboxlog
   
   # Adds another version of the plot and linear model results if data has been log-transformed
   if (input$checkboxline == TRUE && input$checkboxlog == TRUE){
@@ -577,15 +582,14 @@ output$plot2 <- renderPlotly({
                          " Slope =",signif(uva_lm_log$coef[[2]], 2),
                          " P =",signif(summary(uva_lm_log)$coef[2,4], 2))) +
       theme(text = element_text(size = 10))
-  }
+  } #closes if checkbox line
   
   # Everything below now considers the figure as a plotly rather than a ggplot object:
   
   pplot <- ggplotly(p)
-  
   pplot
   
-})
+}) #closes output$plot2
 
 
   #### In-depth Server####
@@ -605,33 +609,24 @@ q <- ggplot(data = neon_subset())+
 #By Month, 250 nm
 if(input$time_scale == 1 & input$uv_freq == 1){ 
   q <- q + ylab('UV Absorbance at 254 nm') +
-    geom_boxplot(aes(x = month(date, label=TRUE), y=uva_250, color=site))
-}
-
-## Alternate Instructions for month scatterplot
-# geom_point(aes(x = month(date, label=TRUE), y=uva_250, color=site, shape = as.factor(year(date))))+
-# labs(shape = "Year Sampled")
+    geom_boxplot(aes(x = month(date, label=TRUE), y=uva_250, color=site))}
 
 #By Month, 280 nm 
 if(input$time_scale == 1 & input$uv_freq == 2){ 
   q <- q + ylab('UV Absorbance at 280 nm') +
-    geom_boxplot(aes(x = month(date, label=TRUE), y=uva_280, color=site))
+    geom_boxplot(aes(x = month(date, label=TRUE), y=uva_280, color=site))}
   # geom_point(aes(x = month(date, label=TRUE), y=uva_280, color=site, shape = as.factor(year(date))))+
   # labs(shape = "Year Sampled")
-}
-
 
 #By Year, 250 nm
 if(input$time_scale == 2 & input$uv_freq == 1){ 
   q <- q + ylab('UV Absorbance at 254 nm') +
-    geom_point(aes(x = date, y = uva_250, color = site))
-}
+    geom_point(aes(x = date, y = uva_250, color = site))}
 
 #By Year, 280 nm
 if(input$time_scale == 2 & input$uv_freq == 2){ 
   q <- q + ylab('UV Absorbance at 280 nm') +
-    geom_point(aes(x = date, y = uva_280, color = site))
-}
+    geom_point(aes(x = date, y = uva_280, color = site))}
 
 
 #By Year with trendline, 250 nm
@@ -648,14 +643,7 @@ if(input$time_scale == 3 & input$uv_freq == 2){
     geom_line(aes(x = date, y = uva_280, color = site))
 }
 
-# #Month vs Year
-# if(input$time_scale == 1){ ##By Year
-#   q <- q + geom_point(aes(x = date, y = uva_280, color = site))
-# } else { ##By Month
-#   q <- q + geom_point(aes(x = month(date, label=TRUE), y=uva_250, color=site, shape = as.factor(year(date))))+
-#     labs(shape = "Year Sampled")
-# }
-
+# Renders plot
 qplot <- ggplotly(q)
 qplot
   
@@ -670,7 +658,6 @@ qplot
       ylab('UV Absorbance at 254 nm')+
       geom_point(aes(x = month(date, label=TRUE), y=input$uva_250, color=site, shape = as.factor(year(date))))+
       labs(shape = "Year Sampled")
-    
   }) #closes renderPlotly for uv250
   
   
@@ -682,35 +669,22 @@ qplot
       ylab('UV Absorbance at 280 nm')+
       geom_point(aes(x = date, y = uva_280, color = site))+
       geom_line(aes(x = date, y = uva_280, color = site))
-    
-    
-    # if (input$checkbox250 == TRUE){
-    #     q <- q + geom_point(aes(x = date, y = uva_250, color = "red"))
-    # }
-    # 
-    # if (input$checkbox280 == TRUE){
-    #     q <- q + geom_point(aes(x = date, y = uva_280)) #WALk to must be a finite number
-    # }
-    # 
-    # q
-  }) #closes renderPlotly for uv 280
+    }) #closes renderPlotly for uv 280
   
   #Extract site attributes
-  
-
    place <- reactive({
      mylist <-input$multiple_site_select # creates a list
     neon_site %>%
       filter(field_site_id %in% mylist) %>%
       select(!!c(2,3,6,20,22,25,26))
-  })
+  }) #closes reactive
   
   
   #Table of site attributes
   output$table3 <- renderTable({place()})
 
 
-  #### Tab 4 Server ####
+  #### Prototype Tab Server ####
  
   # output$value <- renderPrint({ input$date })
   # output$time <- renderPrint(strftime(input$time, "%R"))
@@ -728,17 +702,14 @@ qplot
   # })
   
 
-  
-  
-  
-  #### Sites Server ####
-  output$Sites_table <- renderDataTable(neon_site)
+  #### Site Info Server ####
+  output$Sites_table <- renderDataTable(neon_site %>% 
+                                          select(-site) %>% 
+                                          rename("Site" = "field_site_id"))
   
 
-
-      
 }# closes server
   
 
-
+# Combines UI and server.
 shinyApp(ui, server)

@@ -174,7 +174,7 @@ geom_smooth(method = lm)+
 labs(title = paste("Adj R2 = ",signif(summary(precip_lm)$adj.r.squared, 2),
                    " Intercept =",signif(precip_lm$coef[[1]], 2),
                    " Slope =",signif(precip_lm$coef[[2]], 2),
-                   " P =",signif(summary(precip_lm)$coef[2,4], 2))) 
+                   " p =",signif(summary(precip_lm)$coef[2,4], 2))) 
 
 
 ```
@@ -199,7 +199,7 @@ geom_smooth(method = lm)+
 labs(title = paste("Adj R2 = ",signif(summary(field_latitude_lm)$adj.r.squared, 2),
                    " Intercept =",signif(field_latitude_lm$coef[[1]], 2),
                    " Slope =",signif(field_latitude_lm$coef[[2]], 2),
-                   " P =",signif(summary(field_latitude_lm)$coef[2,4], 2))) 
+                   " p =",signif(summary(field_latitude_lm)$coef[2,4], 2))) 
 
 
 ```
