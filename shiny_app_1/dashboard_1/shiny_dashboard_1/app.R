@@ -65,8 +65,6 @@ neon_site<-read.csv("NEON_Field_Site_Metadata.csv",
 # Renames column names to make them more readable.
 neon_site <- neon_site %>%
   rename(`Domain ID` = field_domain_id) %>%
-  # rename(Site = field_site_id) %>%
-  # rename(`Data Availability = data_availability`) %>%
   rename(Name = field_site_name) %>%
   rename(Type= field_site_type) %>%
   rename(Subtype = field_site_subtype) %>%
@@ -168,6 +166,7 @@ neon_site <- neon_site %>%
     ))
 neon_site <- arrange.vars(neon_site, c("Data_Availability"=3))
 
+# Renames Data Availability column name to make it more readable
 neon_site <- neon_site %>%
   rename(`Data Availability` = Data_Availability)
   
@@ -292,23 +291,30 @@ dashboardBody(
                export the plot you have constructed."),
             br(),
             sidebarPanel(
-            selectInput("xvar", label = "X-variable:",
-                        choices = numeric_variables,
+            
+            #selector for x axis variable
+            selectInput("xvar", label = "X-variable:", 
+                        choices = numeric_variables, 
                         selected = 1),
                         selectInput("yvar", "Ultraviolet Frequency:",
                                     c("UV Absorbance at 254 nm" = "uva_250.mean",
                                       "UV Absorbance at 280 nm" = "uva_280.mean"
                                       )),
-                        
-            selectInput("colorby", label = "Color by:",
+            
+            #selector for color  
+            selectInput("colorby", label = "Color by:",        
                         choices = color_variables,
                         selected = 2),
-            checkboxInput("checkboxline", label = "Plot Linear Regression", value = FALSE),
-            checkboxInput("checkboxlog", label = "Log 10", value = FALSE),
+            
+            # selector for linear regression
+            checkboxInput("checkboxline", label = "Plot Linear Regression", value = FALSE), 
+            
+            # selector for log
+            checkboxInput("checkboxlog", label = "Log 10", value = FALSE), 
             ), #closes sideBar Panel
             
             mainPanel(
-              plotlyOutput("plot2"),
+              plotlyOutput("plot2"), 
               br()
             ), #closes main Panel
 
@@ -336,6 +342,7 @@ dashboardBody(
                 
             fluidRow(
               tabBox(width = 12,
+                     #Tab for site selection 
                      tabPanel("Site(s)",
                               fluidRow(column(width = 4,
                                               pickerInput(inputId = "multiple_site_select",
@@ -344,21 +351,24 @@ dashboardBody(
                                                           selected = "ARIK",
                                                           options = list(`actions-box` = TRUE),
                                                           multiple = TRUE)),
-                     )),
+                     )), #closes tab for site selection
                      
+                     #Tab for UV frequency selection
                      tabPanel("UV frequency",
                               fluidRow(column(width = 4,
                                               selectInput("uv_freq", label = "Ultraviolet frequency:",
                                                           choices = list("UV Absorbance at 254 nm" = 1, "UV Absorbance at 280 nm" = 2),
                                                           selected = 1)),
-                     )),
+                     )), #closes tab for UV frequency selection
+                     
+                     #Tab for time scale selection
                      tabPanel("Time Scale",
                               fluidRow(column(width = 4,
                                               selectInput("time_scale", label = "Select time scale:", 
                                                           choices = list("Month" = 1, "Year" = 2, "Year as time series" = 3), #add year with trendline
                                                           selected = 2)),
-                              
-                    )),
+                    )), #closes tab for time scale selection
+                    
               ))
             ),#closes box titled "Data Selection"
             
