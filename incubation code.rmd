@@ -1,0 +1,94 @@
+
+
+
+
+```{r}
+library(dplyr)
+library(readr)
+library(reshape2)
+library(ggplot2)
+
+
+nd<-read.csv('/Users/jdh/Library/CloudStorage/GoogleDrive-jakehosen@gmail.com/My Drive/Active Grants/MSB NEON SUNA Project/msb_neon_incubation/neon_sum_data_240207.csv')
+
+# Install and load required packages
+if (!require(pacman, quietly = TRUE)) {
+  install.packages("pacman")
+  library(pacman)
+}
+
+pacman::p_load(dplyr, readr, tidyr)
+
+# Read the CSV file (replace 'your_file.csv' with your actual file path)
+
+ndc<-dcast(nd[,c("site","season","treatment","doc_conc")],site+season~treatment,mean)
+
+ndc$filt_photo<-ndc$FPAR-ndc$Ini
+ndc$photo<-ndc$UPAR-ndc$Ini
+
+ndc$photo_per_change<-ndc$photo/ndc$Ini*100
+
+ggplot(ndc,aes(site,photo_per_change,color=season))+ geom_point(size=5)
+
+
+
+# Function to create wide format with Ini-corrected doc concentrations
+create_ini_corrected_wide <- function(df) {
+  
+  # Step 1: Calculate mean doc_conc for each treatment within site-deployDate
+  # (average all replicates first)
+  df_means <- df %>%
+    group_by(site, deployDate, treatment) %>%
+    summarise(
+      doc_conc_mean = mean(doc_conc, na.rm = TRUE),
+      .groups = "drop"
+    )
+  
+  # Step 2: Apply Ini correction to the mean values
+  df_corrected <- df_means %>%
+    group_by(site, deployDate) %>%
+    mutate(
+      # Find the Ini treatment's mean doc_conc for this site-deployDate combination
+      ini_baseline = doc_conc_mean[treatment == "Ini"][1],  # Get Ini mean value
+      # Subtract baseline from all treatment means (Ini will become 0)
+      doc_conc_ini_corrected = doc_conc_mean - ini_baseline
+    ) %>%
+    ungroup()
+  
+  # Step 3: Pivot to wide format - each treatment becomes a column
+  df_wide <- df_corrected %>%
+    select(site, deployDate, treatment, doc_conc_ini_corrected) %>%
+    pivot_wider(
+      names_from = treatment,
+      values_from = doc_conc_ini_corrected,
+      names_prefix = "doc_"
+    ) %>%
+    arrange(site, deployDate)
+  
+  return(df_wide)
+}
+
+# Create the wide format dataframe
+data_wide <- create_ini_corrected_wide(nd)
+
+# Display the results
+print("Ini-corrected DOC concentrations in wide format:")
+print(data_wide)
+
+# Save to CSV
+write_csv(data_wide, "ini_corrected_doc_wide_format.csv")
+
+# Show summary information
+print(paste("\nDataframe dimensions:", nrow(data_wide), "rows x", ncol(data_wide), "columns"))
+print(paste("Unique site-deployDate combinations:", nrow(data_wide)))
+print(paste("Treatment columns available:", paste(names(data_wide)[!names(data_wide) %in% c("site", "deployDate")], collapse = ", ")))
+
+# Verify Ini correction (all doc_Ini values should be 0)
+if ("doc_Ini" %in% names(data_wide)) {
+  print(paste("\nVerification - All doc_Ini values should be 0:"))
+  print(paste("Range of doc_Ini values:", round(min(data_wide$doc_Ini, na.rm = TRUE), 6), "to", round(max(data_wide$doc_Ini, na.rm = TRUE), 6)))
+}
+
+
+
+```
