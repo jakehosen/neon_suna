@@ -9,7 +9,7 @@ library(reshape2)
 library(ggplot2)
 
 
-nd<-read.csv('/Users/jdh/Library/CloudStorage/GoogleDrive-jakehosen@gmail.com/My Drive/Active Grants/MSB NEON SUNA Project/msb_neon_incubation/neon_sum_data_240207.csv')
+nd0<-read.csv('/Users/jdh/Library/CloudStorage/GoogleDrive-jakehosen@gmail.com/My Drive/Active Grants/MSB NEON SUNA Project/msb_neon_incubation/neon_sum_data_240207.csv')
 
 # Install and load required packages
 if (!require(pacman, quietly = TRUE)) {
@@ -21,14 +21,154 @@ pacman::p_load(dplyr, readr, tidyr)
 
 # Read the CSV file (replace 'your_file.csv' with your actual file path)
 
-ndc<-dcast(nd[,c("site","season","treatment","doc_conc")],site+season~treatment,mean)
+
+nd0$siteID<-nd0$site
+nd0$date<-as.Date(nd0$deployDate)
+
+nec$date<-as.Date(nec$deployDate,format="%m/%d/%y")
+
+nd<-merge(nd0,nec,by=c("siteID","date"),all.x=TRUE)
+nd$site<-nd$siteID
+
+
+ndc<-dcast(nd[,c("site","season","treatment","collectDate","doc_conc")],site+season+collectDate~treatment,mean)
+nd_ss<-dcast(nd[,c("site","season","collectDate","treatment","SR")],site+season+collectDate~treatment,mean)
+nd_comp5f<-dcast(nd[,c("site","season","collectDate","treatment","comp5f")],site+season+collectDate~treatment,mean)
+nd_comp4f<-dcast(nd[,c("site","season","collectDate","treatment","comp4f")],site+season+collectDate~treatment,mean)
+nd_comp3f<-dcast(nd[,c("site","season","collectDate","treatment","comp3f")],site+season+collectDate~treatment,mean)
+nd_comp2f<-dcast(nd[,c("site","season","collectDate","treatment","comp2f")],site+season+collectDate~treatment,mean)
+nd_comp1f<-dcast(nd[,c("site","season","collectDate","treatment","comp1f")],site+season+collectDate~treatment,mean)
+nd_comp1f<-dcast(nd[,c("site","season","collectDate","treatment","comp1f")],site+season+collectDate~treatment,mean)
+
+neon_meta<-read.csv('/Users/jdh/Library/CloudStorage/GoogleDrive-jakehosen@gmail.com/My Drive/Active Grants/MSB NEON SUNA Project/NEON_Field_Site_Metadata_20250828.csv')
+neon_meta$site<-neon_meta$field_site_id
 
 ndc$filt_photo<-ndc$FPAR-ndc$Ini
 ndc$photo<-ndc$UPAR-ndc$Ini
+ndc$resp_doc<-ndc$UC-ndc$FC
 
 ndc$photo_per_change<-ndc$photo/ndc$Ini*100
 
-ggplot(ndc,aes(site,photo_per_change,color=season))+ geom_point(size=5)
+ndc$s275_295_ini<-nd_ss$Ini
+ndc$comp5f_ini<-nd_comp5f$Ini
+ndc$comp4f_ini<-nd_comp4f$Ini
+ndc$comp3f_ini<-nd_comp3f$Ini
+ndc$comp2f_ini<-nd_comp2f$Ini
+ndc$comp1f_ini<-nd_comp1f$Ini
+
+
+
+ndc$collectDate<-as.POSIXct(ndc$collectDate,format="%m/%d/%y %H:%M")
+
+swwide$site<-swwide$siteID
+
+swwide$date<-as.Date(swwide$collectDate)
+ndc$date<-as.Date(ndc$collectDate)
+
+ndc<-merge(ndc,swwide[,c("site","date","Si","Fe","Ca","Br","Cl","DIC","F","DOC","F","Fe","K","Mg","Mn","Na","NH4 - N","NO2 - N", "NO3+NO2 - N", "Ortho - P", "Si","SO4","specificConductance","TDN","TDP","TDS","TN","TOC","TP","TPC","TPN","TSS","UV Absorbance (254 nm)", "UV Absorbance (280 nm)")], by=c("site","date"), all.x=TRUE)
+
+write.csv()
+
+write.csv(swwide, '/Users/jdh/Library/CloudStorage/GoogleDrive-jakehosen@gmail.com/My Drive/Active Grants/MSB NEON SUNA Project/NeonAncillaryData/neon_sw_chem_wide.csv',row.names=FALSE)
+
+
+
+ndc$uv_deg_doc<-ndc$FU-ndc$FC
+ndc2<-subset(ndc,uv_deg_doc>-1.5)
+
+ndc3<-merge(ndc2,neon_meta,by="site")
+ndc3$field_mean_annual_temperature_C<-as.numeric(gsub("°C","",ndc3$field_mean_annual_temperature_C,fixed=TRUE))
+
+ggplot(ndc3,aes(comp3f_ini,fpar_net,color=season))+ geom_point(size=5)
+summary(lm(comp3f_ini~uv_deg_doc,data=ndc3))
+
+ggplot(ndc3,aes(field_mean_annual_precipitation_mm,uv_deg_doc,color=season))+ geom_point(size=5)
+summary(lm(uv_deg_doc~field_mean_annual_temperature_C,data=ndc3))
+
+
+
+ggplot(ndc2,aes(comp1f_ini,resp_doc,color=season))+ geom_point(size=5)
+summary(lm(resp_doc~field_mean_annual_temperature_C,data=ndc3))
+
+ggplot(ndc3,aes(field_mean_annual_temperature_C,resp_doc,color=season))+ geom_point(size=3)
+
+
+ggplot(ndc,aes(site,fpar_net))+
+geom_point(aes(color=season))
+
+ndc$resp_net<-ndc$UC-ndc$Pre
+ndc$resp_net2<-ndc$UC-ndc$FC
+
+hist(ndc$resp_net)
+hist(ndc$resp_net2,xlim=c(-0.5,0.4))
+
+ndc$fpar_net<-ndc$FPAR-ndc$Pre
+ggplot(ndc,aes(comp3f_ini,fpar_net,color=season))+ geom_point(size=5)
+
+
+
+
+
+
+sw<-readRDS('/Users/jdh/Library/CloudStorage/GoogleDrive-jakehosen@gmail.com/My Drive/Active Grants/MSB NEON SUNA Project/NeonAncillaryData/sw_chemical_properties.rds')
+
+swdata<-as.data.frame(sw$swc_externalLabDataByAnalyte)
+swdata$date<-as.Date(swdata$collectDate)
+
+
+
+swwide<-dcast(swdata[,c("siteID","date","collectDate","analyteConcentration","analyte")], siteID + date + collectDate ~ analyte , mean, value.var="analyteConcentration") # average effect of time
+
+
+
+nec<-read.csv("/Users/jdh/neon_suna/r_scripts/neon_experiment_collectdates.csv")
+nec$date<-as.Date(nec$collectDate,format="%m/%d/%y %H:%M")
+
+sw_nec<-merge(nec,swwide,by=c("siteID","date"),all.x=TRUE)
+sw_nec$season<-getSeason(sw_nec$date)
+
+ndc3$siteID<-ndc3$site
+
+sw_nec2<-merge(ndc3,sw_nec,by=c("siteID","season"),all.x=TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
