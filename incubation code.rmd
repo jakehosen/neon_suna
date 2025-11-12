@@ -9,6 +9,20 @@ library(reshape2)
 library(ggplot2)
 
 
+
+nec<-read.csv("/Users/jdh/neon_suna/r_scripts/neon_experiment_collectdates.csv")
+nec$date<-as.Date(nec$collectDate,format="%m/%d/%y %H:%M")
+
+#sw_nec<-merge(nec,swwide,by=c("siteID","date"),all.x=TRUE)
+#sw_nec$season<-getSeason(sw_nec$date)
+
+#ndc3$siteID<-ndc3$site
+
+#sw_nec2<-merge(ndc3,sw_nec,by=c("siteID","season"),all.x=TRUE)
+
+
+
+
 nd0<-read.csv('/Users/jdh/Library/CloudStorage/GoogleDrive-jakehosen@gmail.com/My Drive/Active Grants/MSB NEON SUNA Project/msb_neon_incubation/neon_sum_data_240207.csv')
 
 # Install and load required packages
@@ -31,17 +45,20 @@ nd<-merge(nd0,nec,by=c("siteID","date"),all.x=TRUE)
 nd$site<-nd$siteID
 
 
-ndc<-dcast(nd[,c("site","season","treatment","collectDate","doc_conc")],site+season+collectDate~treatment,mean)
-nd_ss<-dcast(nd[,c("site","season","collectDate","treatment","SR")],site+season+collectDate~treatment,mean)
-nd_comp5f<-dcast(nd[,c("site","season","collectDate","treatment","comp5f")],site+season+collectDate~treatment,mean)
-nd_comp4f<-dcast(nd[,c("site","season","collectDate","treatment","comp4f")],site+season+collectDate~treatment,mean)
-nd_comp3f<-dcast(nd[,c("site","season","collectDate","treatment","comp3f")],site+season+collectDate~treatment,mean)
-nd_comp2f<-dcast(nd[,c("site","season","collectDate","treatment","comp2f")],site+season+collectDate~treatment,mean)
-nd_comp1f<-dcast(nd[,c("site","season","collectDate","treatment","comp1f")],site+season+collectDate~treatment,mean)
-nd_comp1f<-dcast(nd[,c("site","season","collectDate","treatment","comp1f")],site+season+collectDate~treatment,mean)
+ndc<-reshape2::dcast(nd[,c("site","season","treatment","collectDate","doc_conc")],site+season+collectDate~treatment,mean)
+nd_ss<-reshape2::dcast(nd[,c("site","season","collectDate","treatment","SR")],site+season+collectDate~treatment,mean)
+nd_comp5f<-reshape2::dcast(nd[,c("site","season","collectDate","treatment","comp5f")],site+season+collectDate~treatment,mean)
+nd_comp4f<-reshape2::dcast(nd[,c("site","season","collectDate","treatment","comp4f")],site+season+collectDate~treatment,mean)
+nd_comp3f<-reshape2::dcast(nd[,c("site","season","collectDate","treatment","comp3f")],site+season+collectDate~treatment,mean)
+nd_comp2f<-reshape2::dcast(nd[,c("site","season","collectDate","treatment","comp2f")],site+season+collectDate~treatment,mean)
+nd_comp1f<-reshape2::dcast(nd[,c("site","season","collectDate","treatment","comp1f")],site+season+collectDate~treatment,mean)
+nd_comp1f<-reshape2::dcast(nd[,c("site","season","collectDate","treatment","comp1f")],site+season+collectDate~treatment,mean)
 
 neon_meta<-read.csv('/Users/jdh/Library/CloudStorage/GoogleDrive-jakehosen@gmail.com/My Drive/Active Grants/MSB NEON SUNA Project/NEON_Field_Site_Metadata_20250828.csv')
 neon_meta$site<-neon_meta$field_site_id
+
+neon_grab_chem<-readRDS('/Users/jdh/Library/CloudStorage/GoogleDrive-jakehosen@gmail.com/My Drive/Active Grants/MSB NEON SUNA Project/NeonAncillaryData/experiment_grab_chem_merged.rds')
+
 
 ndc$filt_photo<-ndc$FPAR-ndc$Ini
 ndc$photo<-ndc$UPAR-ndc$Ini
@@ -117,20 +134,7 @@ swdata$date<-as.Date(swdata$collectDate)
 
 
 
-swwide<-dcast(swdata[,c("siteID","date","collectDate","analyteConcentration","analyte")], siteID + date + collectDate ~ analyte , mean, value.var="analyteConcentration") # average effect of time
-
-
-
-nec<-read.csv("/Users/jdh/neon_suna/r_scripts/neon_experiment_collectdates.csv")
-nec$date<-as.Date(nec$collectDate,format="%m/%d/%y %H:%M")
-
-sw_nec<-merge(nec,swwide,by=c("siteID","date"),all.x=TRUE)
-sw_nec$season<-getSeason(sw_nec$date)
-
-ndc3$siteID<-ndc3$site
-
-sw_nec2<-merge(ndc3,sw_nec,by=c("siteID","season"),all.x=TRUE)
-
+swwide<-reshape::dcast(swdata[,c("siteID","date","collectDate","analyteConcentration","analyte")], siteID + date + collectDate ~ analyte , mean, value.var="analyteConcentration") # average effect of time
 
 
 
