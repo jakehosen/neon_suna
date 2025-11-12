@@ -1,0 +1,8 @@
+library(neonUtilities)
+
+NEON_TOKEN <- "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJhdWQiOiJodHRwczovL2RhdGEubmVvbnNjaWVuY2Uub3JnL2FwaS92MC8iLCJzdWIiOiJqaG9zZW5AcHVyZHVlLmVkdSIsInNjb3BlIjoicmF0ZTpwdWJsaWMiLCJpc3MiOiJodHRwczovL2RhdGEubmVvbnNjaWVuY2Uub3JnLyIsImV4cCI6MTkxNzQ0MTIxNSwiaWF0IjoxNzU5NzYxMjE1LCJlbWFpbCI6Impob3NlbkBwdXJkdWUuZWR1In0.6_se_h_9cRnjBbNVqKz_rdU8yKGv9d7jR6ATctsRdhPPurwQGO36d-dMys_6LUWTXKtDBTh4vmz9gaVFiLUxvA"
+
+
+sw_chemical_properties<-loadByProduct(dpID = "DP1.20261.001", check.size = FALSE, token = NEON_TOKEN, include.provisional = TRUE)
+
+saveRDS(sw_chemical_properties,"/Users/jdh/Library/CloudStorage/GoogleDrive-jakehosen@gmail.com/My Drive/Active Grants/MSB NEON SUNA Project/NeonAncillaryData/par_subsurface.rds")
